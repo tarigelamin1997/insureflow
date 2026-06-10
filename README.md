@@ -251,7 +251,7 @@ insureflow/
 ├── 01-infrastructure/         # Phase directories — each self-contained
 ├── 02-source-systems/         # with CLAUDE.md · README · decisions/ · errors/ · tests/
 ├── ...
-└── docs/plans/                # Archived execution plans — every approved plan copied here
+└── docs/                      # methodology/ (why we work this way) + plans/ (archived plans)
 ```
 
 Each phase directory is self-contained: its own documentation, architectural decisions, error logs, and tests. No phase depends on reading another phase's files to function.

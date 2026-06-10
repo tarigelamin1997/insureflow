@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **GitHub target:** `github.com/tarigelamin1997/insureflow`
 **Deployment:** 100% offline. Single `docker compose up` brings the entire stack live.
 
-**This file is navigation only.** All deep context — decisions, thought process, gotchas, interfaces, validation — lives inside each phase directory. When working on a phase, read `NN-phase-name/CLAUDE.md` first and treat it as the source of truth for that phase.
+**This file is navigation only.** All deep context — decisions, thought process, gotchas, interfaces, validation — lives inside each phase directory. When working on a phase, read `NN-phase-name/CLAUDE.md` first and treat it as the source of truth for that phase. To understand *why* the system is built the way it is — the reasoning behind every gate, ledger, and procedure — read the methodology handbook at `docs/methodology/README.md`.
 
 ---
 
@@ -97,8 +97,8 @@ insureflow/
 │   └── adr-001-validation-robustness-standard.md  # behavioral + negative-case bar for all gates
 │
 └── docs/                          # Project documentation
+    ├── methodology/               # The rationale handbook — why every guardrail/procedure exists
     └── plans/                     # Archived execution plans — every approved plan is copied here
-        └── README.md              # Plan-archive convention (permanent decisions live in ADRs)
 ```
 
 Each phase directory contains:
@@ -172,6 +172,8 @@ A document that describes WHAT without WHY is incomplete. An ADR without consequ
 **Error logging is mandatory at every level.** Every failure encountered during implementation is logged in `NN-phase/errors/` (phase-specific) or `errors/` (root, cross-phase). Before attempting any fix, read the relevant `errors/` directories. A solution that reintroduces a known failed approach is a documentation failure, not an engineering one. Full standard in `procedures/error-logging.md`.
 
 **Plans are archived, not discarded.** Every approved execution plan is copied into `docs/plans/` once executed (`YYYY-MM-DD-title.md`, with a `Status: Executed` header and deviations noted). The plan is the scaffolding; the backing ADR in `decisions/` is the durable record. Together they document the full cycle — what was planned, how it was executed, and why the decision was made. Convention and index: `docs/plans/README.md`.
+
+**The reasoning is documented as a handbook.** `docs/methodology/` explains *why* the way of working exists — the rationale behind every gate, ledger, procedure, and guardrail. Procedures tell you *how*; ADRs record *what was decided*; the methodology handbook is the narrative *why* that ties them together. Start at `docs/methodology/README.md`.
 
 ---
 

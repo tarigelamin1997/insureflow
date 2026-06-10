@@ -44,7 +44,11 @@ Read `NN-phase-name/CLAUDE.md` and verify:
 - [ ] If all errors are resolved or no error files exist: PASS
 
 ### 7 — Root CLAUDE.md phase index
-- [ ] Update the phase status in root `CLAUDE.md` Phase Index table from `⬜ Not started` to `✅ Complete`
+- [ ] Update the phase status in root `CLAUDE.md` Phase Index table from `🚧 In progress` to `✅ Complete`
+
+### 7b — Merge the phase PR
+- [ ] Confirm the phase's pull request is green: CI passing, and all CodeRabbit comments resolved or dismissed with a reason (this overlaps `/review-phase` Check 6 — re-verify nothing reopened)
+- [ ] Merge the PR into `main` (squash or merge commit naming the phase). The merge is the durable "phase complete" marker. Do NOT push the phase commits directly to `main` — see `procedures/code-quality.md` Branching & Pull Request Workflow
 
 ### 8 — Upstream contract check
 The contract check is **upstream-oriented**: in a sequential build the downstream consumer does

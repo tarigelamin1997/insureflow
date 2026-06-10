@@ -1,0 +1,48 @@
+# CodeRabbit configuration for InsureFlow.
+# Reviews every pull request automatically. Rules are tailored per directory —
+# documentation/process files are reviewed for consistency, code (when it lands
+# in the phases) for correctness and the project's standards.
+# Schema: https://docs.coderabbit.ai/reference/configuration
+language: en-US
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_instructions:
+    - path: "procedures/**"
+      instructions: >-
+        Process/standards docs. Review for clarity, internal consistency, and
+        broken cross-references to commands, ADRs, or ledgers. Do not flag
+        "missing code" — these are reference standards, not implementations.
+    - path: "decisions/**"
+      instructions: >-
+        ADRs. Verify the template is followed: Status, Context, Decision,
+        Alternatives (minimum two with InsureFlow-specific rejection reasons),
+        and Consequences including a "Makes impossible" entry. Flag any missing.
+    - path: ".claude/commands/**"
+      instructions: >-
+        Slash-command (gate) definitions. Check that each gate's criteria are
+        behavioral (not presence/liveness) and that every referenced file,
+        procedure, or ledger actually exists.
+    - path: "docs/**"
+      instructions: >-
+        Narrative documentation. Review for accuracy against the procedures and
+        ADRs it references, and for broken links. Light touch on prose style.
+    - path: "**/*.py"
+      instructions: >-
+        Production Python. Enforce type hints, no hardcoded secrets or
+        connection strings (use os.environ), error handling at system
+        boundaries, and the per-phase conventions (PySpark / FastAPI / dbt).
+    - path: "**/*.sql"
+      instructions: >-
+        dbt / SQL. Models must be documented (grain + columns), use idempotent
+        operations (MERGE / DELETE+INSERT / INSERT OVERWRITE), and avoid SELECT *.
+chat:
+  auto_reply: true

@@ -49,7 +49,8 @@ CLAUDE.md `## Validation Gate` and `## Fitness Functions`:
 - [ ] For each criterion, ask "what change would make this fire?" — if the answer is "nothing", it is no gate. FAIL.
 - [ ] This is the highest-leverage check: a weak criterion caught here is fixed before it shapes any code.
 
-### Check 6 — Mark in progress
+### Check 6 — Branch + mark in progress
+- [ ] Create and check out the phase branch off the latest `main`: `git checkout main && git pull && git checkout -b NN-phase-name` (the branch name is the phase id, e.g. `04-bronze-layer`). All implementation happens here, never on `main` — see `procedures/code-quality.md` Branching & Pull Request Workflow
 - [ ] In the root `CLAUDE.md` Phase Index, set this phase's status from `⬜ Not started` to `🚧 In progress`
 
 ## Output Format
@@ -61,7 +62,7 @@ CLAUDE.md `## Validation Gate` and `## Fitness Functions`:
 | Required procedures exist | PASS/FAIL | deferred ones authored: list |
 | Fitness stubs exist | PASS/FAIL | N stubs |
 | Gate robustness | PASS/FAIL | weak/negative-case-missing criteria: list |
-| Marked in progress | DONE | |
+| Branch created + marked in progress | DONE | branch NN-phase-name |
 
 **If all checks PASS:** state explicitly "Phase NN is ready for implementation."
 **If any check FAILS:** list every failing item with the exact fix required. Do not write any

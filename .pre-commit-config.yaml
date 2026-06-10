@@ -1,0 +1,27 @@
+# Pre-commit hooks for InsureFlow.
+# Install once per clone:  pre-commit install
+#
+# Active now (docs/blueprint stage):
+#   - ggshield        secret scanning (uses your existing GitGuardian auth)
+#   - file hygiene    trailing whitespace, EOF, large files, merge markers
+#
+# Phase 01 adds the Python toolchain (ruff / mypy / bandit) once code lands —
+# see procedures/code-quality.md. They are intentionally omitted here because
+# there is no Python yet and they need pyproject.toml / .bandit config.
+repos:
+  - repo: https://github.com/gitguardian/ggshield
+    rev: v1.46.0
+    hooks:
+      - id: ggshield
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]   # preserve markdown hard breaks
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: check-case-conflict

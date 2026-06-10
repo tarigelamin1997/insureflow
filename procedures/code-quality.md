@@ -158,6 +158,29 @@ Tag BEFORE the change, not after. If something breaks mid-change and you tag aft
 
 ---
 
+## Branching & Pull Request Workflow
+
+`main` is always green and is never committed to directly. Every change reaches `main` through a pull
+request, so the review gates — CodeRabbit and `/review-phase` — actually run.
+
+- **One branch per phase.** A phase is built on a branch named after it: `01-infrastructure`,
+  `04-bronze-layer`, `10a-feature-store`. Non-phase work uses a typed branch: `chore/...`, `docs/...`,
+  `fix/...`. The phase branch maps 1:1 to the phase; merging it is the phase's completion.
+- **Open a PR as soon as there's something to review.** Push the branch and open a PR against `main`.
+  **CodeRabbit reviews every PR automatically** (config in `.coderabbit.yaml`, rules tailored per
+  directory). CI runs on the same PR.
+- **CodeRabbit comments are resolved before merge.** Each comment is either addressed or explicitly
+  dismissed with a reason. `/review-phase` Check 6 verifies this; do not merge with open CodeRabbit
+  findings.
+- **Merge only after the gates pass.** `/review-phase` (code) and `/close-phase` (docs + contracts +
+  chaos) must both pass, and CodeRabbit must be satisfied, before the PR merges. Prefer a squash or
+  merge commit that names the phase — the merge is the durable "phase complete" marker in history.
+
+Where this sits in the lifecycle: the branch is created at `/start-phase`, the PR is opened once
+implementation has something to show, and the merge happens after `/close-phase`.
+
+---
+
 ## What Is Never Acceptable
 
 - `# type: ignore` without an inline comment explaining the specific reason

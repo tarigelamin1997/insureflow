@@ -10,13 +10,20 @@ context), `README.md`, `decisions/` (local ADRs), `errors/`, and `tests/` (`unit
 Each phase moves through a fixed lifecycle:
 
 ```
-/new-phase ──▶ fill CLAUDE.md ──▶ /start-phase ──▶ implement ──▶ /review-phase ──▶ /run-chaos ──▶ /close-phase
- scaffold       define the spec    ENTRY GATE       build         CODE GATE         resilience      EXIT GATE
-   ⬜                                  🚧                                                                ✅
+/new-phase ─▶ fill CLAUDE.md ─▶ /start-phase ─▶ implement ─▶ open PR ─▶ /review-phase ─▶ /run-chaos ─▶ /close-phase ─▶ merge PR
+ scaffold      define the spec   ENTRY GATE      build        CodeRabbit   CODE GATE       resilience     EXIT GATE       to main
+   ⬜                           🚧 + branch                   + CI                                            ✅
 ```
 
 The phase index in root `CLAUDE.md` tracks state: `⬜ Not started` → `🚧 In progress` (set by
 `/start-phase`) → `✅ Complete` (set by `/close-phase`).
+
+The work happens on a **branch per phase** and reaches `main` through a **pull request**, never a
+direct push — that is what makes the review gates real. **CodeRabbit** reviews every PR
+automatically, and `/review-phase` requires its comments resolved before merge. The merge of the
+phase's PR is the durable "phase complete" marker in history. See
+[02 — Gates](../02-gates-and-enforcement/) for why a stated gate must be wired to actually fire, and
+`procedures/code-quality.md` for the branching workflow.
 
 ## Why
 

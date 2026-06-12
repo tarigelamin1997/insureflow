@@ -1,6 +1,7 @@
 # InsureFlow — Insurance Data Platform
 
 ![Build](https://github.com/tarigelamin1997/insureflow/actions/workflows/quality.yml/badge.svg)
+![Release](https://img.shields.io/github/v/release/tarigelamin1997/insureflow)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Stack](https://img.shields.io/badge/stack-Kafka%20%C2%B7%20Iceberg%20%C2%B7%20dbt%20%C2%B7%20Airflow-informational)
 
@@ -192,9 +193,11 @@ Six SLOs monitored in Prometheus, alerted in Grafana:
 
 ## Implementation Phases
 
+Status: ⬜ Not started · 🚧 In progress · ✅ Complete (released).
+
 | Phase | Title | Status |
 |---|---|---|
-| 01 | Infrastructure — Docker Compose + Terraform | ⬜ |
+| 01 | Infrastructure — Docker Compose + Terraform | ✅ `v0.1.0` |
 | 02 | Source Systems — PostgreSQL schemas + seed data | ⬜ |
 | 03 | CDC Ingestion — Debezium + Kafka KRaft | ⬜ |
 | 04 | Bronze Layer — Iceberg + MinIO + PII masking | ⬜ |
@@ -262,7 +265,7 @@ curl -f http://localhost:8080/    # the canary page, over the published port
 insureflow/
 ├── docker-compose.yml         # Entire stack — single entry point
 ├── .env.example               # All environment variables documented
-├── .github/workflows/         # CI: ruff · mypy · bandit · dbt test · soda scan
+├── .github/workflows/         # CI: GitGuardian · ruff · mypy · bandit · pytest (dbt/soda added later)
 ├── CONTRACTS.md               # Cross-phase interface ledger — Produces → Consumes
 ├── procedures/                # Reference standards for recurring implementation tasks
 ├── decisions/                 # Project-wide ADRs (adr-000 foundation, adr-001 validation standard)

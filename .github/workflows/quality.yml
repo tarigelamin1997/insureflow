@@ -1,8 +1,8 @@
 # CI quality gate for InsureFlow.
-# Now (blueprint stage): GitGuardian secret scan on every push and PR — the
-# bypass-proof layer that runs even if a local pre-commit hook is skipped.
-# Phase 01 expands this workflow with lint (ruff / mypy / bandit), unit tests,
-# data-quality (dbt test / soda scan), and fitness-function jobs once Python
+#   - secret-scan       GitGuardian — bypass-proof, runs even if a local hook is skipped
+#   - lint              ruff + mypy (strict) + bandit
+#   - fitness-functions pytest architectural property checks (tests/contracts)
+# Later phases add unit-tests and data-quality (dbt test / soda scan) jobs as that
 # code lands. See procedures/code-quality.md.
 name: quality
 
@@ -43,3 +43,47 @@ jobs:
         run: |
           echo "::warning title=GitGuardian CI scan skipped::GITGUARDIAN_API_KEY secret is not set."
           echo "Activate it with:  gh secret set GITGUARDIAN_API_KEY --repo tarigelamin1997/insureflow"
+
+  lint:
+    name: Lint (ruff · mypy · bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tools
+        # Versions pinned to match .pre-commit-config.yaml — CI and the local gate must not drift.
+        run: pip install --quiet ruff==0.6.9 mypy==1.11.2 bandit==1.7.10 types-PyYAML
+
+      - name: ruff (lint)
+        run: ruff check .
+
+      - name: ruff (format check)
+        run: ruff format --check .
+
+      - name: mypy (strict)
+        run: mypy --strict 01-infrastructure/tests/contracts
+
+      - name: bandit (medium+ severity)
+        run: bandit -ll -r .
+
+  fitness-functions:
+    name: Fitness functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: pip install --quiet pytest pyyaml
+
+      - name: pytest (contracts)
+        run: pytest 01-infrastructure/tests/contracts -v --tb=short

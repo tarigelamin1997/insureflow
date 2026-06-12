@@ -1,0 +1,66 @@
+# =============================================================================
+# InsureFlow — root docker-compose.yml (single entry point for the whole stack).
+#
+# Phase 01 establishes the substrate every later phase extends:
+#   - the shared user-defined bridge network `insureflow` (service-name DNS)
+#   - the named-volume convention  insureflow-<service>-<purpose>
+#   - the reusable x-healthcheck-defaults anchor (the platform healthcheck cadence)
+#   - one `canary` smoke-test service that proves the network + healthcheck pattern
+#
+# Compose OWNS the runtime substrate (network, volumes, services) so a single
+# `docker compose up` brings the stack live. Terraform (01-infrastructure/terraform)
+# owns image provisioning + digest pinning for offline reproducibility — it stages
+# the SAME digest this file references via ${CANARY_IMAGE}. See 01-infrastructure/
+# decisions/adr-001. Later phases append their service blocks under `services:`.
+# =============================================================================
+
+# Standard healthcheck cadence — merged into every service via `<<: *healthcheck-defaults`.
+# Rationale + per-service patterns: procedures/docker-healthcheck.md.
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 10s        # steady-state check frequency once healthy
+  timeout: 5s          # a single check must answer within this
+  retries: 5           # consecutive failures before the container is marked unhealthy
+  start_period: 30s    # boot grace — failures here do NOT count toward retries
+
+networks:
+  insureflow:
+    name: insureflow
+    driver: bridge
+
+volumes:
+  insureflow-canary-html:
+    name: insureflow-canary-html
+
+services:
+  # Phase 01 reference fixture. Permanent connectivity + healthcheck smoke test.
+  # Future refinement (NOT this phase): move behind `profiles: ["smoke"]` once real
+  # services exist so the production stack does not ship a stray nginx.
+  canary:
+    # Digest-pinned (never a floating tag). `:?` makes a missing value a hard error,
+    # so the stack cannot run un-pinned. The digest lives once, in .env(.example),
+    # and is the same one Terraform stages.
+    image: ${CANARY_IMAGE:?CANARY_IMAGE must be set to a digest-pinned image — see .env.example}
+    container_name: insureflow-canary
+    restart: unless-stopped
+    networks:
+      - insureflow
+    ports:
+      - "${CANARY_HOST_PORT:-8080}:80"
+    volumes:
+      # Serve the page FROM the named volume — makes the volume convention concrete
+      # and the VG2 negative case (removing index.html) meaningful.
+      - insureflow-canary-html:/usr/share/nginx/html
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo '<!doctype html><title>InsureFlow canary</title><h1>InsureFlow canary OK</h1>' > /usr/share/nginx/html/index.html
+        exec nginx -g 'daemon off;'
+    healthcheck:
+      # Behavioral + FAIL-ON-ERROR: wget exits non-zero on a connection failure AND on any
+      # HTTP status >= 400 (nginx answers 403/404 once index.html is gone). A plain `wget`/`curl`
+      # without fail-on-error would exit 0 on a 404 and never fire.
+      # Use 127.0.0.1, NOT localhost: localhost resolves to ::1 (IPv6) here and nginx listens on
+      # IPv4 only → localhost would be refused. See 01-infrastructure/errors/ERR-001.
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]

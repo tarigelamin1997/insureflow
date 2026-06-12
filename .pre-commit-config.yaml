@@ -1,13 +1,15 @@
 # Pre-commit hooks for InsureFlow.
 # Install once per clone:  pre-commit install
 #
-# Active now (docs/blueprint stage):
+# Hooks:
 #   - ggshield        secret scanning (uses your existing GitGuardian auth)
 #   - file hygiene    trailing whitespace, EOF, large files, merge markers
+#   - ruff            lint + format Python (config: pyproject.toml)
+#   - mypy            strict type checking (config: pyproject.toml)
+#   - bandit          security lint, medium+ severity (config: .bandit)
 #
-# Phase 01 adds the Python toolchain (ruff / mypy / bandit) once code lands —
-# see procedures/code-quality.md. They are intentionally omitted here because
-# there is no Python yet and they need pyproject.toml / .bandit config.
+# The Python toolchain was activated in Phase 01 (first Python landed: the fitness
+# functions). See procedures/code-quality.md.
 repos:
   - repo: https://github.com/gitguardian/ggshield
     rev: v1.46.0
@@ -25,3 +27,23 @@ repos:
         args: [--maxkb=1024]
       - id: check-merge-conflict
       - id: check-case-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff           # lint
+        args: [--fix]
+      - id: ruff-format    # format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: [--strict]
+        additional_dependencies: [types-PyYAML]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        args: ["-ll"]   # -ll = medium+ severity; .bandit config is auto-discovered

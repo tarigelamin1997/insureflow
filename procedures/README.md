@@ -27,7 +27,7 @@ either a Written file or a Deferred entry with an owning phase.
 | `validation-standard.md` | Written | All phases (`/start-phase`, `/review-phase`, `/close-phase`) | Gate Robustness Standard — behavioral + negative-case bar for every criterion |
 | `seed-data.md` | Written | Phase 02 | Scenario-based seed data — 12 InsureFlow scenarios |
 | `foundation-audit.md` | Written | Foundation edits (`/audit-foundation`) | Repeatable consistency sweep of the foundation |
-| `docker-healthcheck.md` | Deferred → Phase 01 | Phase 01 (every service in `docker-compose.yml`) | Healthcheck patterns per service type |
+| `docker-healthcheck.md` | Written | Phase 01 onward (every service in `docker-compose.yml`) | Healthcheck patterns per service type |
 | `kafka-connector.md` | Deferred → Phase 03 | Phase 03 | Debezium connector config template |
 | `airflow-dag-factory.md` | Deferred → Phase 03 | Phase 03 onward (first DAG phase) | YAML DAG factory: idempotent ops, ShortCircuit gate, audit trail |
 | `iceberg-table.md` | Deferred → Phase 04 | Phases 04, 05, 06 | Iceberg table creation + partitioning conventions |

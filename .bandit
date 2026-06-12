@@ -1,0 +1,5 @@
+# Bandit configuration for InsureFlow. See procedures/code-quality.md.
+# Severity threshold is set to MEDIUM at invocation (-ll in pre-commit and CI):
+# low-severity findings (e.g. B101 assert-used in tests) are warnings, not blockers.
+# No baseline skips — a real medium/high finding must be fixed, not suppressed.
+[bandit]

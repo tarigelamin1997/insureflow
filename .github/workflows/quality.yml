@@ -1,9 +1,12 @@
 # CI quality gate for InsureFlow.
-# Now (blueprint stage): GitGuardian secret scan on every push and PR — the
-# bypass-proof layer that runs even if a local pre-commit hook is skipped.
-# Phase 01 expands this workflow with lint (ruff / mypy / bandit), unit tests,
-# data-quality (dbt test / soda scan), and fitness-function jobs once Python
+#   - secret-scan       GitGuardian — bypass-proof, runs even if a local hook is skipped
+#   - lint              ruff + mypy (strict) + bandit
+#   - fitness-functions pytest architectural property checks (tests/contracts)
+# Later phases add unit-tests and data-quality (dbt test / soda scan) jobs as that
 # code lands. See procedures/code-quality.md.
+#
+# Action refs are pinned to commit SHAs (supply-chain hardening); the trailing
+# `# vX.Y.Z` comment keeps them human-readable and easy to bump.
 name: quality
 
 on:
@@ -23,12 +26,13 @@ jobs:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
     steps:
       - name: Checkout (full history for a complete scan)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.11"
 
@@ -43,3 +47,52 @@ jobs:
         run: |
           echo "::warning title=GitGuardian CI scan skipped::GITGUARDIAN_API_KEY secret is not set."
           echo "Activate it with:  gh secret set GITGUARDIAN_API_KEY --repo tarigelamin1997/insureflow"
+
+  lint:
+    name: Lint (ruff · mypy · bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install tools
+        # Versions pinned to match .pre-commit-config.yaml — CI and the local gate must not drift.
+        run: pip install --quiet ruff==0.6.9 mypy==1.11.2 bandit==1.7.10 types-PyYAML
+
+      - name: ruff (lint)
+        run: ruff check .
+
+      - name: ruff (format check)
+        run: ruff format --check .
+
+      - name: mypy (strict)
+        run: mypy --strict 01-infrastructure/tests/contracts
+
+      - name: bandit (medium+ severity)
+        run: bandit -ll -r .
+
+  fitness-functions:
+    name: Fitness functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        # Pinned for deterministic contract-test runs, consistent with the rest of the toolchain.
+        run: pip install --quiet pytest==7.4.3 pyyaml==6.0.3
+
+      - name: pytest (contracts)
+        run: pytest 01-infrastructure/tests/contracts -v --tb=short

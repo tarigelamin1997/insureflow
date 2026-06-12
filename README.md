@@ -217,22 +217,42 @@ Six SLOs monitored in Prometheus, alerted in Grafana:
 
 **First-time setup**
 
-LLaMA 3.2 3B (~2GB) is pulled on first run via Ollama. This is the only step that requires internet access. All subsequent runs are fully offline.
-
 ```bash
 git clone https://github.com/tarigelamin1997/insureflow.git
 cd insureflow
+cp .env.example .env
 ```
 
-> ⚠️ Additional first-run setup steps (environment variables, Ollama model pull) will be documented here when Phase 01 is complete.
+> **Phase 01 status — infrastructure substrate only.** What runs today is the shared `insureflow`
+> Docker network, the named-volume convention, the standard healthcheck pattern, and a single
+> `canary` smoke-test service. Data, AI, governance, serving, and observability services land in
+> later phases — the one-time ~2 GB Ollama model pull applies from Phase 10b, not yet.
+>
+> **Why digest pinning?** Every service image is pinned to an immutable digest (a content hash),
+> never a floating tag like `latest`, so the exact same bits run on every machine and in air-gapped
+> deployments. Terraform pre-stages those digests locally — *so what:* after one online provision the
+> stack runs fully offline with no registry pulls. It is optional in Phase 01 (only the canary runs);
+> skipping it just means the image is pulled on the first `docker compose up`.
+>
+> Optional — pre-stage digest-pinned images for fully-offline runs (Terraform image provisioning):
+>
+> ```bash
+> export TF_VAR_canary_image=$(grep '^CANARY_IMAGE=' .env | cut -d= -f2)
+> terraform -chdir=01-infrastructure/terraform init
+> terraform -chdir=01-infrastructure/terraform apply
+> ```
 
-**Run the full stack**
+**Run the stack**
 
 ```bash
-docker compose up
+docker compose up -d
+docker compose ps                 # canary should report (healthy)
+curl -f http://localhost:8080/    # the canary page, over the published port
 ```
 
-> ⚠️ Service URLs and access details (Airflow, Superset, OpenMetadata, Grafana, Kafka UI, MinIO) will be documented here when Phase 01 is complete.
+> After Phase 01 this brings up the `canary` smoke-test service only. Service URLs for Airflow,
+> Superset, OpenMetadata, Grafana, Kafka UI, and MinIO are added here as those services land in their
+> phases (02–12).
 
 ---
 

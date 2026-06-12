@@ -29,7 +29,7 @@ Rows are filled as each phase closes — the table is empty until Phase 01 close
 
 | Phase | Status | Produces (for downstream) | Consumed by |
 |---|---|---|---|
-| 01 Infrastructure | ⬜ | _(filled at close)_ | — |
+| 01 Infrastructure | ✅ | Docker network `insureflow` (bridge); named-volume convention `insureflow-<service>-<purpose>`; root `docker-compose.yml` skeleton + `x-healthcheck-defaults` anchor + reserved service-name namespace; `.env.example` env-var contract; healthcheck pattern (`procedures/docker-healthcheck.md`); Terraform image-provisioning (`01-infrastructure/terraform`, digest-pinned `docker_image`); Python tooling baseline (ruff/mypy/bandit + pre-commit + CI lint/fitness jobs) | All later phases 02–12 — every service attaches to `insureflow`, declares a volume per the convention, carries a healthcheck per the pattern, is digest-pinned in Terraform, and inherits the Python tooling. First consumer: 02 Source Systems (`postgres-pms`/`cms`/`pfs` on `insureflow`, healthchecks, image pins) |
 | 02 Source Systems | ⬜ | | |
 | 03 CDC Ingestion | ⬜ | | |
 | 04 Bronze | ⬜ | | |

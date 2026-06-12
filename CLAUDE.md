@@ -122,7 +122,7 @@ Status legend: `⬜ Not started` · `🚧 In progress` (set by `/start-phase`) �
 
 | Phase | Title | Status |
 |---|---|---|
-| 01 | Infrastructure — Docker Compose + Terraform | 🚧 In progress |
+| 01 | Infrastructure — Docker Compose + Terraform | ✅ Complete |
 | 02 | Source Systems — PostgreSQL schemas + seed data | ⬜ Not started |
 | 03 | CDC Ingestion — Debezium + Kafka KRaft | ⬜ Not started |
 | 04 | Bronze Layer — Iceberg + MinIO + PII masking | ⬜ Not started |

@@ -228,6 +228,12 @@ cp .env.example .env
 > `canary` smoke-test service. Data, AI, governance, serving, and observability services land in
 > later phases — the one-time ~2 GB Ollama model pull applies from Phase 10b, not yet.
 >
+> **Why digest pinning?** Every service image is pinned to an immutable digest (a content hash),
+> never a floating tag like `latest`, so the exact same bits run on every machine and in air-gapped
+> deployments. Terraform pre-stages those digests locally — *so what:* after one online provision the
+> stack runs fully offline with no registry pulls. It is optional in Phase 01 (only the canary runs);
+> skipping it just means the image is pulled on the first `docker compose up`.
+>
 > Optional — pre-stage digest-pinned images for fully-offline runs (Terraform image provisioning):
 >
 > ```bash

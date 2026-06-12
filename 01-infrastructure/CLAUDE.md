@@ -117,18 +117,22 @@ Prometheus/Grafana alerting, so no criterion is deferred `[validated at Phase 12
 validated at this phase's own close.
 
 ### VG1 — Terraform pulls and pins the canary image (offline image provisioning)
+
 - **Positive:** `terraform -chdir=01-infrastructure/terraform init && terraform -chdir=01-infrastructure/terraform apply -auto-approve` → exit 0; then `docker image inspect <pinned-image>@<digest>` returns the image and its `RepoDigests` contains the pinned digest.
 - **Negative:** point the canary image at a nonexistent/garbage digest and re-apply → `terraform apply` fails with a pull error, non-zero exit. Proves the pin is enforced, not cosmetic.
 
 ### VG2 — Stack comes up healthy (behavioral healthcheck, not a port probe)
+
 - **Positive:** `docker compose up -d` → within `start_period + interval × retries`, `docker inspect --format '{{.State.Health.Status}}' insureflow-canary` returns `healthy`. The healthcheck issues a real, **fail-on-error** HTTP request *inside* the container (`wget -q -O /dev/null` / `curl -f`, per `procedures/docker-healthcheck.md`) against the page served from the `insureflow-canary-html` volume.
 - **Negative:** remove the served file — `docker compose exec canary rm /usr/share/nginx/html/index.html` — so nginx answers `403`/`404`; wait past `start_period` → the fail-on-error check exits non-zero and health transitions to `unhealthy` within `interval × retries`. (A check without `-f`/fail-on-error would exit `0` on the 403/404 and this negative case would never fire — that is the watch-point.)
 
 ### VG3 — Shared-network service-name DNS
+
 - **Positive:** `docker run --rm --network insureflow busybox:1.36 wget -qO- http://canary` returns the canary's HTTP body — `canary` resolves by Compose service name over the shared bridge.
 - **Negative:** the same command **without** `--network insureflow` (lands on the default bridge) → `canary` does not resolve and `wget` exits non-zero. Proves later phases must share `insureflow` to reach one another.
 
 ### VG4 — .env.example completeness
+
 - **Positive:** `cp .env.example .env && docker compose config` → exit 0 with no "variable is not set" warning; every `${VAR}` referenced in `docker-compose.yml` resolves from `.env.example`.
 - **Negative:** comment out one required variable in `.env` and re-run `docker compose config` → it emits the unset-variable warning / fails. Proves `.env.example` documents every variable the compose file references.
 

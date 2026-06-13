@@ -198,3 +198,19 @@ A phase CLAUDE.md is not acceptable if any of these are missing:
 - Test Strategy section filled — every check either has a threshold or an explicit justification for why it doesn't apply
 - Chaos Scenarios section filled — either lists applicable scenarios or explicitly states none with a reason
 - Procedures section (even if only one row — must not be the full unfiltered table)
+
+---
+
+## Definition of Done (closing habit)
+
+A phase is "done" only when its changes are **reflected on every surface where they are visible** — not when the code merges. As you build, update each surface the moment you change what it describes; do not defer it to close.
+
+Surfaces to keep current (the ones that show this phase's state or outputs):
+- Root `README.md` — phase table status, Getting Started, Project Structure
+- Root `CLAUDE.md` — Phase Index status, Status line, any naming/decision table you touched
+- `CONTRACTS.md` — this phase's `Produces` row
+- `procedures/README.md` — any procedure you authored moved `Deferred → Written`
+- `chaos/CLAUDE.md` — coverage matrix, for any angle this phase satisfies
+- The phase's own `README.md` / `CLAUDE.md`
+
+This is the **front line**; `/close-phase` Check 10 is the backstop that fails the close if any surface is stale. A spawned subagent inherits this rule and must report exactly which surfaces it updated. (Canonical statement: root `CLAUDE.md` → Global Build Standards → Documentation reflection.)

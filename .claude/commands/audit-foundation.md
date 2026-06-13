@@ -8,7 +8,7 @@ Arguments: none. (Optionally a single invariant ID, e.g. `I3`, to run just that 
 
 ## Steps
 
-1. Read `procedures/foundation-audit.md` in full — it defines invariants I1–I9.
+1. Read `procedures/foundation-audit.md` in full — it defines invariants I1–I11.
 
 2. Run each invariant as a read-only check against the current repository:
    - **I1** — cross-check `procedures/README.md` against the actual files in `procedures/`, and
@@ -31,6 +31,11 @@ Arguments: none. (Optionally a single invariant ID, e.g. `I3`, to run just that 
      is behavioral and has a negative case (or `N/A — reason`); confirm `validation-standard.md` is
      referenced by the template and enforced at `/start-phase`, `/review-phase`, `/close-phase`.
      (Vacuous pass if no phase CLAUDE.md exists yet.)
+   - **I11** — for every ✅ phase, confirm no documentation surface is stale: root README (phase
+     table/Getting Started/structure), root CLAUDE.md (Phase Index, Status line, naming/decision
+     tables), `CONTRACTS.md`, `procedures/README.md` registry, `chaos/CLAUDE.md` matrix, and the
+     phase's own docs all reflect the closed state; confirm the four-layer wiring (CLAUDE.md →
+     template → `/close-phase` Check 10) is intact. (Vacuous pass if no phase is ✅ yet.)
 
 3. Report using the output table from `procedures/foundation-audit.md`.
 

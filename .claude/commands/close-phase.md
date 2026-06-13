@@ -67,6 +67,25 @@ on its already-closed producers.
 - [ ] If the section explicitly states "None — this phase has no chaos scenarios" with a reason: PASS
 - [ ] Update the Six-Angle Coverage Matrix in `chaos/CLAUDE.md` with the ST-NNN reference for any angle this phase's scenarios satisfy
 
+### 10 — Documentation reflection (cross-surface backstop)
+"Done" = reflected on every surface where this phase is visible, not just code merged. This is the
+backstop catching any surface no check above owns — the gap that left the root README phase-table
+stale after Phase 01. Checks 5/7/8/9 cover individual surfaces; this asserts the **full set** is
+consistent, and explicitly owns the surfaces none of them do (root README, the registry, the
+repo-structure tree, the Status line).
+- [ ] Enumerate every surface this phase's change touches. At minimum: root `README.md` (phase
+      table, Getting Started, Project Structure), root `CLAUDE.md` (Phase Index, Status line, any
+      naming/decision table touched), `CONTRACTS.md`, `procedures/README.md` (registry status),
+      `chaos/CLAUDE.md` (matrix), and the phase's own README/CLAUDE.md.
+- [ ] Confirm each shows the current post-phase state: status marks flipped, new outputs documented,
+      authored procedures moved `Deferred → Written`, new files present in the repo-structure tree.
+- [ ] **Behavioral:** a reader opening any one surface cold sees the phase as it actually is — none
+      still shows it not-started, no produced output left undocumented.
+- [ ] **Negative case:** leave one surface deliberately stale (e.g. the root README phase row still
+      ⬜) and confirm this check catches it before reporting PASS. `Negative case: N/A` is NOT
+      permitted here — staleness is always injectable, so the check must prove it fires.
+- [ ] FAIL if any surface is stale or any change is unreflected.
+
 ## Output Format
 
 Report as a table:
@@ -83,5 +102,6 @@ Report as a table:
 | Phase index updated | PASS/FAIL/MISSING | |
 | Upstream contracts aligned | PASS/FAIL/MISSING | CONTRACTS.md row appended |
 | Chaos scenarios passed | PASS/FAIL/MISSING | N scenarios, N ST-NNN clean |
+| Docs reflected (all surfaces) | PASS/FAIL/MISSING | surfaces checked; stale-case fired |
 
 If any row is FAIL or MISSING, list exactly what needs to be fixed before the phase can be closed.

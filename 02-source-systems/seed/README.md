@@ -50,6 +50,32 @@ python 02-source-systems/seed/generate.py --scenarios all --scale 0.02
 Output lands in `02-source-systems/seed/output/` (created on demand, **gitignored** - the seed
 is regenerated deterministically, never committed).
 
+### Generate **and load** into the running instances
+
+`load.sh` does both in one step: it runs the generator, then `psql`-loads each `*_seed.sql`
+into its matching **running** instance over the published host port, using connection params
+from the environment (`.env` is auto-sourced if present). Idempotent - the seed SQL's
+`TRUNCATE ... RESTART IDENTITY CASCADE` preamble means re-running resets and re-seeds.
+
+```bash
+# Prereq: the three Postgres are up and healthy
+docker compose up -d postgres-pms postgres-cms postgres-pfs
+docker compose ps                          # wait for (healthy)
+
+# Full-scale load (default scenarios S01..S05, scale 1.0, seed 42)
+./02-source-systems/seed/load.sh
+
+# CI/fast profile (~1K policyholders) — identical 50/30 edge counts (fixed injections)
+SCALE=0.02 ./02-source-systems/seed/load.sh
+
+# Re-load WITHOUT the edge scenarios (the VG3 negative case — pairs ≠ 50, orphans ≠ 30)
+SCENARIOS=S01 ./02-source-systems/seed/load.sh
+```
+
+Env knobs: `SCALE` (default `1.0`), `SCENARIOS` (default `S01,S02,S03,S04,S05`), `SEED`
+(default `42`). Connection params come from `POSTGRES_<SYS>_HOST` / `_HOST_PORT` / `_USER` /
+`_PASSWORD` / `_DB` (per `.env.example`); requires `python3` and `psql` on PATH on the host.
+
 ---
 
 ## Scenarios
@@ -139,6 +165,18 @@ pytest 02-source-systems/tests/unit -q
 They verify: exactly 50 duplicate-NIC pairs and 30 orphan claims (at `--scale 0.02` and `1.0`),
 intra-seed FK integrity, zero NULL PKs, both S04 date formats present, both S05 currencies
 present, the fixed-vs-scale behaviour, and determinism (same seed => identical SQL).
+
+Live fitness functions (do the LOADED tables hold the documented properties?) run against the
+running instances - `02-source-systems/tests/contracts` (50 dup-NIC pairs, 30 cross-instance
+orphan claims, zero NULL PKs, CDC config active). After `./load.sh`:
+
+```bash
+pip install "psycopg[binary]==3.2.3"
+pytest 02-source-systems/tests/contracts -v -ra
+```
+
+With no DB up they SKIP (explicit reason, never a silent pass), so CI stays green; the
+behavioral proof runs against the live stack at phase close.
 
 End-to-end pipeline assertions (does the platform handle the seed?) live in the consuming
 phases' CLAUDE.md `## Test Strategy` (Phase 05 dedup, Phase 06 referential integrity).

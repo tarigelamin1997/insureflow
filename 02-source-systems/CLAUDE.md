@@ -45,6 +45,8 @@ Net-new (created by this phase):
 - `02-source-systems/seed/scenarios/` — one module per seeded scenario (S01–S05 implemented this phase)
 - `02-source-systems/seed/output/` — generated SQL (gitignored)
 - `02-source-systems/seed/README.md` — how to run the generator, scenario descriptions, the S06–S12 out-of-scope note
+- `02-source-systems/seed/load.sh` — generate-then-load script: runs `generate.py` at a chosen `--scale`, then `psql`-loads each `*_seed.sql` into its matching running instance from env connection params (idempotent — the seed SQL TRUNCATEs+RESTART IDENTITY). Documented in `seed/README.md`.
+- `02-source-systems/tests/contracts/conftest.py` — shared contract-test fixtures: env-keyed `DsnSpec` resolver + per-instance live `psycopg` connections that `pytest.skip()` (never silently pass) when no DB is reachable, so the CI `fitness-functions` job stays green and the behavioral proof runs against the live stack at close.
 - `02-source-systems/tests/unit/conftest.py` — pytest path bootstrap so the unit tests import the `seed` package (the phase dir name is not a legal dotted-module path)
 - `02-source-systems/terraform/` — `docker_image` digest pin for `postgres:16` (one resource, follows Phase 01 Terraform pattern)
 - `02-source-systems/tests/unit/test_seed_scenarios.py` — seed-self assertions (per `procedures/seed-data.md`)
@@ -54,7 +56,8 @@ Net-new (created by this phase):
 Modifies (shared files owned by the foundation — **flagged**):
 
 - `docker-compose.yml` (root) — appends the three `postgres-*` service blocks, their named volumes, and the schema/seed init wiring; attaches each to `insureflow`; each carries a healthcheck per `procedures/docker-healthcheck.md`
-- `.env.example` (root) — adds the three databases' env-var contract (db names, users, passwords, host ports, the replication role/password)
+- `.env.example` (root) — adds the three databases' env-var contract (db names, users, passwords, host ports, **host** for the loader/contract tests, the replication role/password)
+- `.github/workflows/quality.yml` (root) — adds `psycopg[binary]` to the `lint` (mypy import resolution) and `fitness-functions` (contract-test import) installs; the contract tests skip without a DB so the job stays green
 - `CONTRACTS.md` (root) — appends the Phase 02 `Produces` row at close (per `/close-phase` Check 8)
 - `README.md` (root) — Getting Started + service URLs, kept honest to what now runs
 - `.gitignore` (root) — ensures `02-source-systems/seed/output/` is ignored
@@ -138,39 +141,70 @@ Before writing any of the following file types in this phase, read the linked pr
 ## Validation Gate
 
 Each criterion is **behavioral** (asserts the component does its job through its real interface) and
-carries a **negative case** (per `procedures/validation-standard.md`). Runnable after
-`docker compose up` and the seed load, with no other setup. No criterion depends on
+carries a **negative case** (per `procedures/validation-standard.md`). No criterion depends on
 Prometheus/Grafana alerting, so none is deferred `[validated at Phase 12]`.
+
+**One-time setup (brings the three sources up and loads the fixture):**
+
+```bash
+cp .env.example .env                      # if not already present
+export TF_VAR_postgres_image=$(grep '^POSTGRES_IMAGE=' .env | cut -d= -f2)
+docker compose up -d postgres-pms postgres-cms postgres-pfs
+docker compose ps                          # wait until all three show (healthy)
+SCALE=1 ./02-source-systems/seed/load.sh   # generate + psql-load S01–S05 into all three (idempotent)
+pip install "psycopg[binary]==3.2.3"       # contract-test connection driver
+```
+
+VG2/VG3/VG4 then run as one command (each fitness test names its own negative case in its
+docstring); VG1 is the manual write/serve probe below:
+
+```bash
+pytest 02-source-systems/tests/contracts -v -ra
+# Expect: every test PASSES (DB present). With NO DB up, every behavioral test SKIPS with an
+# explicit reason (deferred proof) and the two pure-config guard tests pass — CI stays green.
+```
 
 ### VG1 — Each source DB accepts writes and serves them back (behavioral, not a port probe)
 
-- **Positive:** for each of `postgres-pms`/`postgres-cms`/`postgres-pfs`, `docker compose exec <svc> psql -U <user> -d <db> -c "INSERT … RETURNING …"` then a `SELECT` returns the same row, value-for-value.
-- **Negative:** stop the target service (or revoke write on the table) and retry → the INSERT fails with a non-zero exit; the healthcheck transitions to `unhealthy` within `interval × retries`. Proves the gate reads real DB behavior, not container liveness.
+- **Positive (runnable):**
+  ```bash
+  docker compose exec postgres-pms psql -U pms -d pms \
+    -c "INSERT INTO agents (agent_code, agent_name) VALUES ('VG1-PROBE','probe') RETURNING agent_id" \
+    -c "SELECT agent_name FROM agents WHERE agent_code='VG1-PROBE'"
+  ```
+  the `RETURNING` row and the follow-up `SELECT` return the same value. Repeat for `postgres-cms` / `postgres-pfs`.
+- **Negative:** `docker compose stop postgres-pms` then retry the INSERT → it fails with a non-zero exit; the healthcheck transitions to `unhealthy` within `interval × retries`. Proves the gate reads real DB behavior, not container liveness.
 
 ### VG2 — Logical-replication CDC config is active (asserted via the running engine, not file presence)
 
-- **Positive:** `psql -c "SHOW wal_level"` returns `logical` on all three; `SELECT setting FROM pg_settings WHERE name IN ('max_wal_senders','max_replication_slots')` returns ≥ 3 each; the replication role exists with `rolreplication = true`; a test logical slot can be created and dropped.
-- **Negative:** set `wal_level=replica` (or remove the replication privilege) and restart → the `SHOW wal_level` assertion fails and creating a logical slot errors. Proves the config is read from the live server, not from a `.conf` file on disk.
+- **Positive (runnable):** `pytest 02-source-systems/tests/contracts/test_cdc_config_present.py -v` — asserts `SHOW wal_level` = `logical` on all three, `max_wal_senders`/`max_replication_slots` ≥ 3 from `pg_settings`, the replication role exists with `rolreplication = true` in `pg_roles`, and a logical slot can be **created and dropped** (the end-to-end decoding capability).
+- **Negative:** start a DB with `command: ["postgres","-c","wal_level=replica"]` (or `ALTER ROLE replicator NOREPLICATION`) and re-run → the `wal_level` assertion fails and `pg_create_logical_replication_slot` errors. Proves the config is read from the live server, not from a `.conf` file on disk.
 
 ### VG3 — Deliberate DQ scenarios are present at exact counts (the seed is a test fixture)
 
-- **Positive:** after loading S01–S05, `SELECT count(*) FROM (… duplicate-NIC pairs …)` returns exactly **50**; `SELECT count(*) FROM claims c LEFT JOIN policies p … WHERE p.policy_id IS NULL` returns exactly **30** orphan claims; both observed through `psql` against the loaded DB.
-- **Negative:** regenerate the seed with the S02/S03 injection disabled (or count perturbed) → the counts no longer equal 50 / 30 and the gate fails. Proves the gate measures the actual loaded data, not a constant.
+- **Positive (runnable):** `pytest 02-source-systems/tests/contracts/test_duplicate_nic_pairs.py 02-source-systems/tests/contracts/test_orphan_claims_count.py -v` — `test_duplicate_nic_pairs` counts NICs in `postgres-pms.policyholders` carried by ≥ 2 distinct `policyholder_id` and asserts **exactly 50**; `test_orphan_claims_count` fetches the PMS `policies.policy_id` set, then counts `postgres-cms.claims` whose non-NULL `policy_id` is **not** in that set and asserts **exactly 30** — the set difference is computed **in Python across the two separate instances** (no FK, no single-DB join), exactly the cross-instance gap ADR-002 creates.
+- **Negative:** `SCENARIOS=S01 ./02-source-systems/seed/load.sh` (re-load without S02/S03) → pairs ≠ 50 and orphans ≠ 30 → both tests fail. Proves the gate measures the actual loaded data, not a constant.
 
 ### VG4 — No NULL primary keys anywhere (referential foundation for all downstream layers)
 
-- **Positive:** for every one of the 17 tables, `SELECT count(*) FROM <table> WHERE <pk> IS NULL` returns 0; summed across all 17 tables, the total is 0.
-- **Negative:** attempt to insert a row with a NULL PK → Postgres rejects it (PK NOT NULL constraint), and if the constraint were dropped the fitness query returns > 0 and fails. Proves PK integrity is enforced at the source, not assumed.
+- **Positive (runnable):** `pytest 02-source-systems/tests/contracts/test_no_null_pks.py -v` — for every one of the 17 tables (the map mirrors the DDL exactly), `SELECT count(*) WHERE <pk> IS NULL` is 0; the summed total across all 17 is 0.
+- **Negative:** `ALTER TABLE agents ALTER COLUMN agent_id DROP NOT NULL` then insert a NULL-PK row → the per-table count > 0 → the aggregate fails. (Without dropping the constraint, Postgres rejects the NULL-PK insert outright — PK integrity is enforced at the source, not assumed.)
 
 ## Fitness Functions
 
-Each is behavioral and **refutable** (per `procedures/fitness-function.md`): a reviewer can name the
-change that turns each test red. These run in CI via the `fitness-functions` job.
+**Status: implemented** (the four `xfail` stubs were replaced with real behavioral tests in
+Chunk 4). Each is behavioral and **refutable** (per `procedures/fitness-function.md`): a reviewer
+can name the change that turns each test red. They connect to the live instances via `psycopg`
+with env-keyed connection params (a shared `tests/contracts/conftest.py` fixture), and
+**`pytest.skip()` with an explicit, non-silent reason when no DB is reachable** — so the CI
+`fitness-functions` job (which has no Postgres) stays green and the behavioral proof runs against
+the live stack at phase close. They run in CI via the `fitness-functions` job and live at
+`/close-phase`.
 
-- **Exactly 30 orphan claims (S03)** — orphan = a `claims` row whose `policy_id` has no matching `policies` row → `tests/contracts/test_orphan_claims_count.py` — Refute: change the injected orphan count, or make every claim reference a valid policy → the test fails. Negative case: seed with S03 disabled → count ≠ 30 → test fails.
-- **Exactly 50 duplicate-NIC policyholder pairs (S02)** — pairs of `policyholders` rows sharing a NIC under different `policyholder_id` → `tests/contracts/test_duplicate_nic_pairs.py` — Refute: dedupe at source, or change the injection count → the test fails. Negative case: seed with S02 disabled → pairs ≠ 50 → test fails.
-- **Zero NULL primary keys across all 17 tables** → `tests/contracts/test_no_null_pks.py` — Refute: introduce a nullable PK column or a NULL-PK row → the aggregate count > 0 → the test fails. Negative case: inject a NULL-PK fixture row → test fails.
-- **CDC config present (`wal_level=logical`, senders/slots ≥ 3, replication role)** — asserted via `pg_settings` / `pg_replication_slots` on the live engine, NOT file presence → `tests/contracts/test_cdc_config_present.py` — Refute: set `wal_level=replica`, or drop senders/slots below 3, or remove the replication role → the test fails. Negative case: a DB started with default (`replica`) WAL config → test fails.
+- **Exactly 30 orphan claims (S03)** — orphan = a CMS `claims` row whose non-NULL `policy_id` has no matching PMS `policies` row → `tests/contracts/test_orphan_claims_count.py`. **Cross-instance:** PMS and CMS are SEPARATE Postgres instances (ADR-002), so the test fetches the PMS `policy_id` set, then computes the set difference against CMS claim refs **in Python across two connections** — there is no FK and no single-DB join. Refute: change the injected orphan count, or make every claim reference a valid policy → the test fails. Negative case: re-load with S03 disabled → count ≠ 30 → test fails.
+- **Exactly 50 duplicate-NIC policyholder pairs (S02)** — NICs in `postgres-pms.policyholders` carried by ≥ 2 distinct `policyholder_id` (`GROUP BY nic HAVING count(DISTINCT policyholder_id) > 1`) → `tests/contracts/test_duplicate_nic_pairs.py`. Refute: dedupe at source, or change the injection count → the test fails. Negative case: re-load with S02 disabled → pairs ≠ 50 → test fails.
+- **Zero NULL primary keys across all 17 tables** → `tests/contracts/test_no_null_pks.py` — iterates a `(table, pk)` map mirroring the DDL exactly, composing identifiers with `psycopg.sql.Identifier` (no string interpolation). Refute: introduce a nullable PK column or a NULL-PK row → the aggregate count > 0 → the test fails. Negative case: drop a PK NOT-NULL constraint and inject a NULL-PK fixture row → test fails.
+- **CDC config present (`wal_level=logical`, senders/slots ≥ 3, replication role)** — asserted via `pg_settings` / `pg_roles` on the live engine, NOT file presence; also creates + drops a real logical slot (`pg_create_logical_replication_slot`) to prove decoding works end to end → `tests/contracts/test_cdc_config_present.py`. Refute: set `wal_level=replica`, or drop senders/slots below 3, or remove the replication role → the test fails. Negative case: a DB started with default (`replica`) WAL config → the `wal_level` assertion fails and slot creation errors.
 
 ## Blast Radius
 

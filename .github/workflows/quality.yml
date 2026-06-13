@@ -63,8 +63,10 @@ jobs:
 
       - name: Install tools
         # Versions pinned to match .pre-commit-config.yaml — CI and the local gate must not drift.
-        # pytest is needed for mypy to resolve `import pytest` in the contract-test stubs.
-        run: pip install --quiet ruff==0.6.9 mypy==1.11.2 bandit==1.7.10 types-PyYAML pytest==7.4.3
+        # pytest is needed for mypy to resolve `import pytest` in the contract tests.
+        # psycopg (ships py.typed) is needed for mypy to resolve `import psycopg` in the Phase 02
+        # contract tests; the binary extra avoids a libpq/compiler build on the runner.
+        run: pip install --quiet ruff==0.6.9 mypy==1.11.2 bandit==1.7.10 types-PyYAML pytest==7.4.3 "psycopg[binary]==3.2.3"
 
       - name: ruff (lint)
         run: ruff check .
@@ -93,7 +95,12 @@ jobs:
 
       - name: Install test deps
         # Pinned for deterministic contract-test runs, consistent with the rest of the toolchain.
-        run: pip install --quiet pytest==7.4.3 pyyaml==6.0.3
+        # psycopg[binary] lets the Phase 02 contract tests IMPORT cleanly; they still SKIP here
+        # because this job has no Postgres — the behavioral proof runs against the live stack at
+        # phase close. (A skip is reported, never a false pass.)
+        run: pip install --quiet pytest==7.4.3 pyyaml==6.0.3 "psycopg[binary]==3.2.3"
 
       - name: pytest (contracts)
-        run: pytest 01-infrastructure/tests/contracts 02-source-systems/tests/contracts -v --tb=short
+        # -ra surfaces the skip reasons in the summary so a reader sees WHY Phase 02 skipped
+        # (no DB) rather than a silent green. rootdir per phase keeps conftest discovery correct.
+        run: pytest 01-infrastructure/tests/contracts 02-source-systems/tests/contracts -v -ra --tb=short

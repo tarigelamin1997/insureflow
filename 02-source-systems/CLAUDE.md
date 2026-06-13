@@ -148,7 +148,7 @@ Prometheus/Grafana alerting, so none is deferred `[validated at Phase 12]`.
 
 ### VG4 — No NULL primary keys anywhere (referential foundation for all downstream layers)
 
-- **Positive:** for every one of the 17 tables, `SELECT count(*) WHERE <pk> IS NULL` returns 0; aggregated, the total is 0.
+- **Positive:** for every one of the 17 tables, `SELECT count(*) FROM <table> WHERE <pk> IS NULL` returns 0; summed across all 17 tables, the total is 0.
 - **Negative:** attempt to insert a row with a NULL PK → Postgres rejects it (PK NOT NULL constraint), and if the constraint were dropped the fitness query returns > 0 and fails. Proves PK integrity is enforced at the source, not assumed.
 
 ## Fitness Functions

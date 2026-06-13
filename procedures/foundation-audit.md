@@ -55,6 +55,7 @@ For each "must"/"gate"/"before X" rule in a procedure, a command actually enforc
 - Prerequisites met + deferred procedures authored + CLAUDE.md filled before code → `/start-phase`.
 - Open errors (phase + root) block close → `/close-phase` Check 6.
 - No `xfail` fitness stub ships → `/review-phase` Check 4.
+- Every affected documentation surface reflected at close → `/close-phase` Check 10.
 FAIL if a rule is stated but no command checks it.
 
 ### I7 — Cross-document fact consistency
@@ -81,9 +82,18 @@ For every authored phase CLAUDE.md, sweep the `## Validation Gate` and `## Fitne
   the wiring is intact (the four-layer chain has no broken link).
 - Vacuous pass if no phase CLAUDE.md is authored yet — state "no phase CLAUDE.md authored yet".
 
----
-
-## Output
+### I11 — Documentation reflection
+For every phase marked ✅ in the Phase Index, every surface that displays its state or outputs is
+current — no surface contradicts the phase's actual closed state:
+- Root `README.md` (phase table status, Getting Started, Project Structure), root `CLAUDE.md`
+  (Phase Index, Status line, naming/decision tables), `CONTRACTS.md`, `procedures/README.md`
+  registry, `chaos/CLAUDE.md` matrix, and the phase's own README/CLAUDE.md all show the phase as
+  closed and its outputs as documented.
+- FAIL on any surface still showing a closed phase as not-started, or any produced output absent
+  from the surfaces that should list it (e.g. a `Produces` output with no `CONTRACTS.md` row).
+- Confirm the four-layer wiring is intact: defined in CLAUDE.md Global Build Standards, carried by
+  the template (`phase-claude-md.md` → Definition of Done), enforced at `/close-phase` Check 10.
+- Vacuous pass if no phase is ✅ yet — state "no closed phases yet".
 
 Report as a table, one row per invariant:
 
@@ -99,6 +109,7 @@ Report as a table, one row per invariant:
 | I8 No undefined references | PASS/FAIL | |
 | I9 Decision ownership | PASS/FAIL | |
 | I10 Gate robustness | PASS/FAIL | weak/negative-case-missing criteria |
+| I11 Documentation reflection | PASS/FAIL | stale surface for a closed phase |
 
 **Green** = all PASS. State "Foundation is airtight." Any FAIL lists the exact file and fix.
 

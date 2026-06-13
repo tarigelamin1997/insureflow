@@ -31,9 +31,10 @@ other InsureFlow phase is upstream of this one. Required-healthy when the stack 
 
 Net-new (created by this phase):
 
-- `02-source-systems/schema/pms/` — DDL for the 7 PMS tables + role + `REPLICA IDENTITY` + CDC settings
-- `02-source-systems/schema/cms/` — DDL for the 6 CMS tables
-- `02-source-systems/schema/pfs/` — DDL for the 4 PFS tables
+- `02-source-systems/schema/init/00-replication-role.sh` — shared replication-role bootstrap (Chunk 1)
+- `02-source-systems/schema/pms/01-schema.sql` — DDL for the 7 PMS tables (intra-PMS FKs, `policyholders` REPLICA IDENTITY FULL, table SELECT grant to the replication role)
+- `02-source-systems/schema/cms/01-schema.sql` — DDL for the 6 CMS tables (claims cross-instance logical refs / NO FK, `claims`/`claim_events`/`reserves` REPLICA IDENTITY FULL)
+- `02-source-systems/schema/pfs/01-schema.sql` — DDL for the 4 PFS tables (cross-instance logical refs / NO FK, one intra-PFS FK `gl_settlements`→`premium_transactions`, all DEFAULT)
 - `02-source-systems/seed/generate.py` — parameterized scenario seed generator (per `procedures/seed-data.md`)
 - `02-source-systems/seed/scenarios/` — one module per seeded scenario (S01–S05 in scope this phase)
 - `02-source-systems/seed/output/` — generated SQL (gitignored)
@@ -63,9 +64,12 @@ Chunk 1 — substrate (written):
 - **Three separate Postgres instances vs one multi-database instance** — see `decisions/adr-002-three-instances-vs-one.md` (separate instances model three real legacy systems, isolate per-system CDC slots/failure domains, and make CMS→PMS orphan claims a real cross-DB gap rather than an enforceable FK)
 - **CDC-readiness as a source property** (`wal_level=logical`, senders/slots ≥ 3, dedicated replication role; set at postmaster start, asserted against the live engine) — see `decisions/adr-004-cdc-readiness-source-property.md`
 
-Chunk 2/3 — schema + seed (deferred, authored when those chunks run):
+Chunk 2 — schema (written):
 
-- **`REPLICA IDENTITY FULL` vs `DEFAULT` per table** — `decisions/adr-003-replica-identity-strategy.md` (FULL where Silver dedup/SCD needs full before-images; DEFAULT where PK suffices — a cost/fidelity tradeoff). Owned by Chunk 2.
+- **`REPLICA IDENTITY FULL` vs `DEFAULT` per table** — see `decisions/adr-003-replica-identity-strategy.md` (FULL on `policyholders`/`claims`/`claim_events`/`reserves` where Silver dedup/SCD/out-of-order/revaluation needs full before-images; DEFAULT on the other 13 where PK suffices — a cost/fidelity tradeoff). Owned by Chunk 2.
+
+Chunk 3 — seed (deferred, authored when that chunk runs):
+
 - **Scenario-based seed generator design** (fixed seed, composable scenarios, SQL output) — `decisions/adr-005-seed-generator-design.md` (reproducibility + scenario composability per `procedures/seed-data.md`). Owned by Chunk 3.
 
 ## Interface Contract

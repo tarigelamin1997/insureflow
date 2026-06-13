@@ -116,8 +116,12 @@ services:
       - "max_replication_slots=10"
     volumes:
       - insureflow-postgres-pms-data:/var/lib/postgresql/data
-      # Replication-role bootstrap — runs once on first init, before the DB serves traffic.
-      - ./02-source-systems/schema/init:/docker-entrypoint-initdb.d:ro
+      # initdb runs files in /docker-entrypoint-initdb.d/ DIRECTLY (not subdirs), in
+      # FILENAME order. Mount the shared role script (00-) then ONLY this instance's
+      # schema (01-) as individual files — never a whole schema dir, which would load
+      # another instance's tables into the wrong DB. Order: role first, schema second.
+      - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
+      - ./02-source-systems/schema/pms/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       <<: *healthcheck-defaults
       test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]
@@ -147,7 +151,9 @@ services:
       - "max_replication_slots=10"
     volumes:
       - insureflow-postgres-cms-data:/var/lib/postgresql/data
-      - ./02-source-systems/schema/init:/docker-entrypoint-initdb.d:ro
+      # Role script (00-) then ONLY the CMS schema (01-), as individual files. See postgres-pms.
+      - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
+      - ./02-source-systems/schema/cms/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       <<: *healthcheck-defaults
       test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]
@@ -177,7 +183,9 @@ services:
       - "max_replication_slots=10"
     volumes:
       - insureflow-postgres-pfs-data:/var/lib/postgresql/data
-      - ./02-source-systems/schema/init:/docker-entrypoint-initdb.d:ro
+      # Role script (00-) then ONLY the PFS schema (01-), as individual files. See postgres-pms.
+      - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
+      - ./02-source-systems/schema/pfs/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       <<: *healthcheck-defaults
       test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]

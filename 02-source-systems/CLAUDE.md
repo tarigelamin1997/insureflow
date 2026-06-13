@@ -54,14 +54,19 @@ Modifies (shared files owned by the foundation — **flagged**):
 ## Decisions
 
 Phase-local ADRs (numbered from `001`, a separate sequence from root `decisions/adr-000`/`adr-001`).
-These are the five non-trivial choices this phase will record — authored at decision time during
-implementation, listed here as the map:
+These are the five non-trivial choices this phase records — authored at decision time during
+implementation. The numbering follows the chunked build order (substrate ADRs land first, in Chunk 1):
 
-- **PostgreSQL 16 as the source RDBMS** for all three systems — see `decisions/adr-001-postgres-source-rdbms.md` (pgoutput logical-decoding plugin is native, matches README tech stack, Debezium-supported)
-- **Logical replication via the native `pgoutput` plugin** (not `wal2json`/`decoderbufs`) — see `decisions/adr-002-logical-replication-pgoutput.md` (no extra plugin install; the path Phase 03 Debezium consumes)
-- **`REPLICA IDENTITY FULL` vs `DEFAULT` per table** — see `decisions/adr-003-replica-identity-strategy.md` (FULL where Silver dedup/SCD needs full before-images; DEFAULT where PK suffices — a cost/fidelity tradeoff)
-- **Three separate Postgres containers vs one multi-database instance** — see `decisions/adr-004-three-instances-vs-one.md` (separate instances model three real legacy systems and isolate per-system CDC slots/failure domains)
-- **Scenario-based seed generator design** (fixed seed, composable scenarios, SQL output) — see `decisions/adr-005-seed-generator-design.md` (reproducibility + scenario composability per `procedures/seed-data.md`)
+Chunk 1 — substrate (written):
+
+- **One shared digest-pinned Postgres image for all three source DBs** (not three image vars) — see `decisions/adr-001-shared-postgres-image.md` (single digest to keep in lockstep with Compose; per-system identity is DB/role/volume/port, not the image)
+- **Three separate Postgres instances vs one multi-database instance** — see `decisions/adr-002-three-instances-vs-one.md` (separate instances model three real legacy systems, isolate per-system CDC slots/failure domains, and make CMS→PMS orphan claims a real cross-DB gap rather than an enforceable FK)
+- **CDC-readiness as a source property** (`wal_level=logical`, senders/slots ≥ 3, dedicated replication role; set at postmaster start, asserted against the live engine) — see `decisions/adr-004-cdc-readiness-source-property.md`
+
+Chunk 2/3 — schema + seed (deferred, authored when those chunks run):
+
+- **`REPLICA IDENTITY FULL` vs `DEFAULT` per table** — `decisions/adr-003-replica-identity-strategy.md` (FULL where Silver dedup/SCD needs full before-images; DEFAULT where PK suffices — a cost/fidelity tradeoff). Owned by Chunk 2.
+- **Scenario-based seed generator design** (fixed seed, composable scenarios, SQL output) — `decisions/adr-005-seed-generator-design.md` (reproducibility + scenario composability per `procedures/seed-data.md`). Owned by Chunk 3.
 
 ## Interface Contract
 

@@ -1,0 +1,10 @@
+# =============================================================================
+# InsureFlow — line-ending policy.
+#
+# Files executed INSIDE Linux containers (shell init scripts, SQL piped through
+# psql, healthcheck helpers) must use LF. CRLF authored on Windows breaks
+# /bin/sh and psql here-docs in the container — see procedures/docker-healthcheck.md.
+# =============================================================================
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.conf text eol=lf

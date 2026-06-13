@@ -97,7 +97,6 @@ CREATE TABLE ifrs17_data (
 -- REPLICA IDENTITY DEFAULT (implicit).
 
 -- -----------------------------------------------------------------------------
--- Table SELECT for the replication role (CONNECT granted by 00-replication-role.sh).
--- Literal role `replicator` coupled to .env POSTGRES_REPLICATION_USER.
--- -----------------------------------------------------------------------------
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO replicator;
+-- Table SELECT for the replication role is granted by 02-grant-select.sh, which
+-- runs after this schema and is parameterized on $POSTGRES_REPLICATION_USER — no
+-- hardcoded role name here (00-replication-role.sh granted CONNECT).

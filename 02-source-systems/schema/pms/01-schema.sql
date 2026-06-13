@@ -148,9 +148,6 @@ CREATE TABLE cancellations (
 );
 -- REPLICA IDENTITY DEFAULT (implicit).
 
--- -----------------------------------------------------------------------------
--- Debezium (replication role) needs table SELECT to capture rows. CONNECT was
--- granted by 00-replication-role.sh; this completes the grant for all PMS tables.
--- Literal role `replicator` is coupled to .env POSTGRES_REPLICATION_USER.
--- -----------------------------------------------------------------------------
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO replicator;
+-- Table SELECT for the replication role is granted by 02-grant-select.sh, which
+-- runs after this schema and is parameterized on $POSTGRES_REPLICATION_USER — no
+-- hardcoded role name here (00-replication-role.sh granted CONNECT).

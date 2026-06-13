@@ -122,6 +122,7 @@ services:
       # another instance's tables into the wrong DB. Order: role first, schema second.
       - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
       - ./02-source-systems/schema/pms/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./02-source-systems/schema/init/02-grant-select.sh:/docker-entrypoint-initdb.d/02-grant-select.sh:ro
     healthcheck:
       <<: *healthcheck-defaults
       test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]
@@ -154,6 +155,7 @@ services:
       # Role script (00-) then ONLY the CMS schema (01-), as individual files. See postgres-pms.
       - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
       - ./02-source-systems/schema/cms/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./02-source-systems/schema/init/02-grant-select.sh:/docker-entrypoint-initdb.d/02-grant-select.sh:ro
     healthcheck:
       <<: *healthcheck-defaults
       test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]
@@ -186,6 +188,7 @@ services:
       # Role script (00-) then ONLY the PFS schema (01-), as individual files. See postgres-pms.
       - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
       - ./02-source-systems/schema/pfs/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./02-source-systems/schema/init/02-grant-select.sh:/docker-entrypoint-initdb.d/02-grant-select.sh:ro
     healthcheck:
       <<: *healthcheck-defaults
       test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]

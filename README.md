@@ -198,7 +198,7 @@ Status: ⬜ Not started · 🚧 In progress · ✅ Complete (released).
 | Phase | Title | Status |
 |---|---|---|
 | 01 | Infrastructure — Docker Compose + Terraform | ✅ `v0.1.0` |
-| 02 | Source Systems — PostgreSQL schemas + seed data | ⬜ |
+| 02 | Source Systems — PostgreSQL schemas + seed data | 🚧 |
 | 03 | CDC Ingestion — Debezium + Kafka KRaft | ⬜ |
 | 04 | Bronze Layer — Iceberg + MinIO + PII masking | ⬜ |
 | 05 | Silver Layer — PySpark + Soda Core | ⬜ |

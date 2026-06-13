@@ -63,7 +63,8 @@ jobs:
 
       - name: Install tools
         # Versions pinned to match .pre-commit-config.yaml — CI and the local gate must not drift.
-        run: pip install --quiet ruff==0.6.9 mypy==1.11.2 bandit==1.7.10 types-PyYAML
+        # pytest is needed for mypy to resolve `import pytest` in the contract-test stubs.
+        run: pip install --quiet ruff==0.6.9 mypy==1.11.2 bandit==1.7.10 types-PyYAML pytest==7.4.3
 
       - name: ruff (lint)
         run: ruff check .
@@ -72,7 +73,7 @@ jobs:
         run: ruff format --check .
 
       - name: mypy (strict)
-        run: mypy --strict 01-infrastructure/tests/contracts
+        run: mypy --strict 01-infrastructure/tests/contracts 02-source-systems/tests/contracts
 
       - name: bandit (medium+ severity)
         run: bandit -ll -r .
@@ -95,4 +96,4 @@ jobs:
         run: pip install --quiet pytest==7.4.3 pyyaml==6.0.3
 
       - name: pytest (contracts)
-        run: pytest 01-infrastructure/tests/contracts -v --tb=short
+        run: pytest 01-infrastructure/tests/contracts 02-source-systems/tests/contracts -v --tb=short

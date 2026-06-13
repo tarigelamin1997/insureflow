@@ -35,10 +35,17 @@ Net-new (created by this phase):
 - `02-source-systems/schema/pms/01-schema.sql` — DDL for the 7 PMS tables (intra-PMS FKs, `policyholders` REPLICA IDENTITY FULL, table SELECT grant to the replication role)
 - `02-source-systems/schema/cms/01-schema.sql` — DDL for the 6 CMS tables (claims cross-instance logical refs / NO FK, `claims`/`claim_events`/`reserves` REPLICA IDENTITY FULL)
 - `02-source-systems/schema/pfs/01-schema.sql` — DDL for the 4 PFS tables (cross-instance logical refs / NO FK, one intra-PFS FK `gl_settlements`→`premium_transactions`, all DEFAULT)
-- `02-source-systems/seed/generate.py` — parameterized scenario seed generator (per `procedures/seed-data.md`)
-- `02-source-systems/seed/scenarios/` — one module per seeded scenario (S01–S05 in scope this phase)
+- `02-source-systems/seed/generate.py` — parameterized scenario seed generator CLI (per `procedures/seed-data.md`)
+- `02-source-systems/seed/builder.py` — importable `build_dataset(cfg)` + the seed-self invariant checks (no I/O)
+- `02-source-systems/seed/registry.py` — `S01..S12` → builder map; S06–S12 are `NotImplementedError` placeholders (architected, out of scope)
+- `02-source-systems/seed/config.py` — `GenConfig`, the seeded RNG, and the `BASELINE`/`FIXED`/`PERCENT` volume model (the percentage-vs-fixed split)
+- `02-source-systems/seed/model.py` — typed dataclasses mirroring the 17 schema tables + the `Dataset` container
+- `02-source-systems/seed/fields.py` — deterministic synthetic-field helpers (names, NICs, dates, money, enums)
+- `02-source-systems/seed/sql.py` — `Dataset` → per-instance SQL serialisation (idempotent `TRUNCATE … RESTART IDENTITY CASCADE` preamble, `OVERRIDING SYSTEM VALUE`)
+- `02-source-systems/seed/scenarios/` — one module per seeded scenario (S01–S05 implemented this phase)
 - `02-source-systems/seed/output/` — generated SQL (gitignored)
-- `02-source-systems/seed/README.md` — how to run the generator, scenario descriptions
+- `02-source-systems/seed/README.md` — how to run the generator, scenario descriptions, the S06–S12 out-of-scope note
+- `02-source-systems/tests/unit/conftest.py` — pytest path bootstrap so the unit tests import the `seed` package (the phase dir name is not a legal dotted-module path)
 - `02-source-systems/terraform/` — `docker_image` digest pin for `postgres:16` (one resource, follows Phase 01 Terraform pattern)
 - `02-source-systems/tests/unit/test_seed_scenarios.py` — seed-self assertions (per `procedures/seed-data.md`)
 - `02-source-systems/tests/contracts/` — the fitness-function tests listed below
@@ -68,9 +75,9 @@ Chunk 2 — schema (written):
 
 - **`REPLICA IDENTITY FULL` vs `DEFAULT` per table** — see `decisions/adr-003-replica-identity-strategy.md` (FULL on `policyholders`/`claims`/`claim_events`/`reserves` where Silver dedup/SCD/out-of-order/revaluation needs full before-images; DEFAULT on the other 13 where PK suffices — a cost/fidelity tradeoff). Owned by Chunk 2.
 
-Chunk 3 — seed (deferred, authored when that chunk runs):
+Chunk 3 — seed (written):
 
-- **Scenario-based seed generator design** (fixed seed, composable scenarios, SQL output) — `decisions/adr-005-seed-generator-design.md` (reproducibility + scenario composability per `procedures/seed-data.md`). Owned by Chunk 3.
+- **Scenario-based seed generator design** (fixed-seed determinism, composable scenario modules behind a registry, percentage-vs-fixed injection split, SQL-file output vs direct DB load) — see `decisions/adr-005-seed-generator-design.md`. The generator implements S01–S05; S06–S12 are architected (registered) but raise `NotImplementedError` until their consuming phase implements them. Owned by Chunk 3.
 
 ## Interface Contract
 

@@ -198,7 +198,7 @@ Status: ⬜ Not started · 🚧 In progress · ✅ Complete (released).
 | Phase | Title | Status |
 |---|---|---|
 | 01 | Infrastructure — Docker Compose + Terraform | ✅ `v0.1.0` |
-| 02 | Source Systems — PostgreSQL schemas + seed data | ⬜ |
+| 02 | Source Systems — PostgreSQL schemas + seed data | ✅ `v0.2.0` |
 | 03 | CDC Ingestion — Debezium + Kafka KRaft | ⬜ |
 | 04 | Bronze Layer — Iceberg + MinIO + PII masking | ⬜ |
 | 05 | Silver Layer — PySpark + Soda Core | ⬜ |
@@ -237,25 +237,36 @@ cp .env.example .env
 > stack runs fully offline with no registry pulls. It is optional in Phase 01 (only the canary runs);
 > skipping it just means the image is pulled on the first `docker compose up`.
 >
-> Optional — pre-stage digest-pinned images for fully-offline runs (Terraform image provisioning):
+> Optional — pre-stage digest-pinned images for fully-offline runs (Terraform image provisioning).
+> Each phase owns its own Terraform image pins; export the matching `TF_VAR_*` from `.env` first:
 >
 > ```bash
+> # Phase 01 — canary image
 > export TF_VAR_canary_image=$(grep '^CANARY_IMAGE=' .env | cut -d= -f2)
 > terraform -chdir=01-infrastructure/terraform init
 > terraform -chdir=01-infrastructure/terraform apply
+>
+> # Phase 02 — shared Postgres image (used by postgres-pms/cms/pfs)
+> export TF_VAR_postgres_image=$(grep '^POSTGRES_IMAGE=' .env | cut -d= -f2)
+> terraform -chdir=02-source-systems/terraform init
+> terraform -chdir=02-source-systems/terraform apply
 > ```
 
 **Run the stack**
 
 ```bash
 docker compose up -d
-docker compose ps                 # canary should report (healthy)
+docker compose ps                 # canary + the three Postgres sources should report (healthy)
 curl -f http://localhost:8080/    # the canary page, over the published port
 ```
 
-> After Phase 01 this brings up the `canary` smoke-test service only. Service URLs for Airflow,
-> Superset, OpenMetadata, Grafana, Kafka UI, and MinIO are added here as those services land in their
-> phases (02–12).
+> As of Phase 02 this brings up the `canary` smoke-test service **plus the three source databases**
+> `postgres-pms`, `postgres-cms`, `postgres-pfs` (PostgreSQL 16, on host ports 15432/15433/15434 by
+> default — deliberately non-standard so a fresh `docker compose up` never collides with a native
+> Postgres on the host's 5432; override per `.env`, container-internal port is still 5432, each
+> configured for logical replication). They expose no UI — connect with `psql`, e.g.
+> `psql -h localhost -p 15432 -U pms -d pms`. Service URLs for Airflow, Superset, OpenMetadata,
+> Grafana, Kafka UI, and MinIO are added here as those services land in their phases (03–12).
 
 ---
 

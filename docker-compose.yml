@@ -30,6 +30,15 @@ networks:
 volumes:
   insureflow-canary-html:
     name: insureflow-canary-html
+  # Phase 02 — one data volume per source DB (named-volume convention
+  # insureflow-<service>-<purpose>). Each Postgres persists its PGDATA here so a
+  # `docker compose down` (without -v) keeps the seeded source-of-record intact.
+  insureflow-postgres-pms-data:
+    name: insureflow-postgres-pms-data
+  insureflow-postgres-cms-data:
+    name: insureflow-postgres-cms-data
+  insureflow-postgres-pfs-data:
+    name: insureflow-postgres-pfs-data
 
 services:
   # Phase 01 reference fixture. Permanent connectivity + healthcheck smoke test.
@@ -64,3 +73,123 @@ services:
       # IPv4 only → localhost would be refused. See 01-infrastructure/errors/ERR-001.
       <<: *healthcheck-defaults
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+
+  # ---------------------------------------------------------------------------
+  # Phase 02 — Source Systems (PMS / CMS / PFS).
+  #
+  # Three SEPARATE PostgreSQL 16 instances modelling three real legacy systems
+  # (ADR-004), not one instance with three schemas — so a CMS claim referencing a
+  # PMS policy is a genuine cross-DB gap, and each gets its own replication-slot
+  # budget and failure domain. All three share ONE digest-pinned image (ADR-001:
+  # ${POSTGRES_IMAGE}, staged by 02-source-systems/terraform) but each has its own
+  # DB name, owner role, data volume, and host port.
+  #
+  # CDC-readiness is a SOURCE PROPERTY (ADR-004): the command flags put the server in
+  # logical-decoding mode at postmaster start (wal_level=logical needs a restart, NOT a
+  # reload — see 02-source-systems/CLAUDE.md Gotchas), and the init script creates the
+  # replication role Phase 03 Debezium consumes. Per-table REPLICA IDENTITY is Chunk 2.
+  #
+  # Healthcheck is behavioral per procedures/docker-healthcheck.md: `psql … -c 'SELECT 1'`
+  # proves the engine can execute SQL, not merely that the port is open. start_period is
+  # raised to 60s because Postgres cold-start + initdb + the init script is a slow starter.
+  postgres-pms:
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE must be set to a digest-pinned image — see .env.example}
+    container_name: insureflow-postgres-pms
+    restart: unless-stopped
+    networks:
+      - insureflow
+    ports:
+      - "${POSTGRES_PMS_HOST_PORT:-15432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_PMS_USER:?POSTGRES_PMS_USER must be set — see .env.example}
+      POSTGRES_PASSWORD: ${POSTGRES_PMS_PASSWORD:?POSTGRES_PMS_PASSWORD must be set — see .env.example}
+      POSTGRES_DB: ${POSTGRES_PMS_DB:?POSTGRES_PMS_DB must be set — see .env.example}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:?POSTGRES_REPLICATION_USER must be set — see .env.example}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:?POSTGRES_REPLICATION_PASSWORD must be set — see .env.example}
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+    volumes:
+      - insureflow-postgres-pms-data:/var/lib/postgresql/data
+      # initdb runs files in /docker-entrypoint-initdb.d/ DIRECTLY (not subdirs), in
+      # FILENAME order. Mount the shared role script (00-) then ONLY this instance's
+      # schema (01-) as individual files — never a whole schema dir, which would load
+      # another instance's tables into the wrong DB. Order: role first, schema second.
+      - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
+      - ./02-source-systems/schema/pms/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./02-source-systems/schema/init/02-grant-select.sh:/docker-entrypoint-initdb.d/02-grant-select.sh:ro
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]
+      start_period: 60s
+
+  postgres-cms:
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE must be set to a digest-pinned image — see .env.example}
+    container_name: insureflow-postgres-cms
+    restart: unless-stopped
+    networks:
+      - insureflow
+    ports:
+      - "${POSTGRES_CMS_HOST_PORT:-15433}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_CMS_USER:?POSTGRES_CMS_USER must be set — see .env.example}
+      POSTGRES_PASSWORD: ${POSTGRES_CMS_PASSWORD:?POSTGRES_CMS_PASSWORD must be set — see .env.example}
+      POSTGRES_DB: ${POSTGRES_CMS_DB:?POSTGRES_CMS_DB must be set — see .env.example}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:?POSTGRES_REPLICATION_USER must be set — see .env.example}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:?POSTGRES_REPLICATION_PASSWORD must be set — see .env.example}
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+    volumes:
+      - insureflow-postgres-cms-data:/var/lib/postgresql/data
+      # Role script (00-) then ONLY the CMS schema (01-), as individual files. See postgres-pms.
+      - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
+      - ./02-source-systems/schema/cms/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./02-source-systems/schema/init/02-grant-select.sh:/docker-entrypoint-initdb.d/02-grant-select.sh:ro
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]
+      start_period: 60s
+
+  postgres-pfs:
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE must be set to a digest-pinned image — see .env.example}
+    container_name: insureflow-postgres-pfs
+    restart: unless-stopped
+    networks:
+      - insureflow
+    ports:
+      - "${POSTGRES_PFS_HOST_PORT:-15434}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_PFS_USER:?POSTGRES_PFS_USER must be set — see .env.example}
+      POSTGRES_PASSWORD: ${POSTGRES_PFS_PASSWORD:?POSTGRES_PFS_PASSWORD must be set — see .env.example}
+      POSTGRES_DB: ${POSTGRES_PFS_DB:?POSTGRES_PFS_DB must be set — see .env.example}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:?POSTGRES_REPLICATION_USER must be set — see .env.example}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:?POSTGRES_REPLICATION_PASSWORD must be set — see .env.example}
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+    volumes:
+      - insureflow-postgres-pfs-data:/var/lib/postgresql/data
+      # Role script (00-) then ONLY the PFS schema (01-), as individual files. See postgres-pms.
+      - ./02-source-systems/schema/init/00-replication-role.sh:/docker-entrypoint-initdb.d/00-replication-role.sh:ro
+      - ./02-source-systems/schema/pfs/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./02-source-systems/schema/init/02-grant-select.sh:/docker-entrypoint-initdb.d/02-grant-select.sh:ro
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "psql -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -tAc 'SELECT 1' || exit 1"]
+      start_period: 60s

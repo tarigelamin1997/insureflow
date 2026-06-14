@@ -40,7 +40,9 @@ repos:
     hooks:
       - id: mypy
         args: [--strict]
-        additional_dependencies: [types-PyYAML]
+        # psycopg ships py.typed — needed so the hook's isolated venv resolves
+        # `import psycopg` in the Phase 02 contract tests (matches CI's lint install).
+        additional_dependencies: [types-PyYAML, pytest==7.4.3, "psycopg[binary]==3.2.3"]
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.10

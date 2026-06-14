@@ -55,6 +55,10 @@ dbt/insureflow/logs/
 01-infrastructure/terraform/*.tfstate
 01-infrastructure/terraform/*.tfstate.backup
 01-infrastructure/terraform/terraform.tfvars
+02-source-systems/terraform/.terraform/
+02-source-systems/terraform/*.tfstate
+02-source-systems/terraform/*.tfstate.backup
+02-source-systems/terraform/terraform.tfvars
 # Note: .terraform.lock.hcl is committed intentionally — do not add it here
 
 
@@ -85,6 +89,18 @@ logs/
 *.swp
 *.swo
 *.iml
+
+
+# =============================================================================
+# Claude Code (machine-local settings — never commit)
+# =============================================================================
+.claude/settings.local.json
+
+
+# =============================================================================
+# Phase 02 — seed generator output (generated SQL, regenerated deterministically)
+# =============================================================================
+02-source-systems/seed/output/
 
 
 # =============================================================================

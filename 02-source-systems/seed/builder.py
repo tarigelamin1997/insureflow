@@ -66,12 +66,17 @@ def assert_seed_self_consistency(dataset: Dataset, scenarios: list[str]) -> None
             msg = f"S02 invariant: expected {expected} duplicate-NIC pairs, got {pairs}"
             raise AssertionError(msg)
 
+    # Orphan claims are an S03-only artifact: exactly 30 when S03 is active, exactly 0
+    # otherwise. Asserting the non-S03 case too means a baseline run with stray orphans fails.
+    orphans = count_orphan_claims(dataset)
     if "S03" in active:
-        orphans = count_orphan_claims(dataset)
         expected = 30
         if orphans != expected:
             msg = f"S03 invariant: expected {expected} orphan claims, got {orphans}"
             raise AssertionError(msg)
+    elif orphans != 0:
+        msg = f"Non-S03 invariant: expected 0 orphan claims, got {orphans}"
+        raise AssertionError(msg)
 
 
 def _assert_no_null_pks(dataset: Dataset) -> None:

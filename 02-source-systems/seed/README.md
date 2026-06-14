@@ -90,12 +90,15 @@ Env knobs: `SCALE` (default `1.0`), `SCENARIOS` (default `S01,S02,S03,S04,S05`),
 | **S04** | Mixed date formats | **percentage ~40%** | Rewrites ~40% of `policyholders.dob` and `policies.policy_start_date` from ISO-8601 to legacy `DD/MM/YYYY` in the same TEXT column - both formats coexist. |
 | **S05** | Mixed currency | **percentage ~15%** | Tags ~15% of `premium_transactions` as `USD`; the rest are `SAR` with a deterministic slice left `NULL` (NULL => SAR downstream). |
 
-**Fixed-vs-percentage is the load-bearing distinction.** Fixed-absolute counts (S02=50, S03=30)
-are read from `config.FIXED` and are invariant under `--scale` - a `--scale 0.02` run still
-produces exactly 50 duplicate-NIC pairs and 30 orphan claims, because the deliberate edge events
-are a realistic post-acquisition reality whether the book is 1K or 50K. Percentage injections
-(S04/S05) operate on the already-scaled population, so their absolute counts scale while their
-fractions stay constant.
+**Fixed-absolute injections are scale-invariant; percentage injections scale with the population.**
+This is the load-bearing distinction in how a scenario reacts to `--scale`:
+
+- **Fixed-absolute (S02=50, S03=30)** are read from `config.FIXED` and ignore `--scale` - a
+  `--scale 0.02` run still produces exactly 50 duplicate-NIC pairs and 30 orphan claims.
+- **Why fixed:** these are deliberate post-acquisition edge events, a realistic reality whether
+  the book is 1K or 50K, so they must stay exact at any load size.
+- **Percentage (S04 ~40%, S05 ~15%)** operate on the already-scaled population, so their absolute
+  counts scale with `--scale` while their fractions stay constant.
 
 ### Architected but out of scope for Phase 02 (S06-S12)
 

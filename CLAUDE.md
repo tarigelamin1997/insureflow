@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Orientation
 
 **Project:** InsureFlow — production-grade insurance data platform, Medallion lakehouse architecture.
-**Status:** Foundation complete; **Phases 01 (Infrastructure, `v0.1.0`) and 02 (Source Systems, `v0.2.0`) shipped**. Implementation underway — Phase 03 (CDC Ingestion) is next. The Phase Index below is the live source of truth.
+**Status:** Foundation complete; **Phase 01 (Infrastructure) shipped (`v0.1.0`); Phase 02 (Source Systems) complete — `v0.2.0` tagged at merge.** Implementation underway — Phase 03 (CDC Ingestion) is next. The Phase Index below is the live source of truth.
 **GitHub target:** `github.com/tarigelamin1997/insureflow`
 **Deployment:** 100% offline. Single `docker compose up` brings the entire stack live.
 

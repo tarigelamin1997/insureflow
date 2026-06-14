@@ -89,23 +89,31 @@ def run(argv: list[str] | None = None) -> int:
         seed=args.seed,
     )
 
-    dataset = build_dataset(cfg)
-    # Fail-fast: never write SQL for a dataset that violates its own invariants.
-    assert_seed_self_consistency(dataset, cfg.scenarios)
+    # CLI boundary: turn the expected failure paths into a clean non-zero exit with an
+    # `error: ...` message instead of a raw traceback. ValueError = unknown scenario ID;
+    # NotImplementedError = a deferred (S06-S12) scenario was selected; AssertionError =
+    # a self-consistency invariant was violated; OSError = the SQL files could not be written.
+    try:
+        dataset = build_dataset(cfg)
+        # Fail-fast: never write SQL for a dataset that violates its own invariants.
+        assert_seed_self_consistency(dataset, cfg.scenarios)
 
-    _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for instance in INSTANCES:
-        sql_text = render_instance(
-            instance,
-            dataset,
-            scenarios=(IMPLEMENTED if cfg.scenarios == ["all"] else cfg.scenarios),
-            scale=cfg.scale,
-            seed=cfg.seed,
-        )
-        out_path = _OUTPUT_DIR / _FILE_FOR[instance]
-        out_path.write_text(sql_text, encoding="utf-8", newline="\n")
-        row_total = sum(len(getattr(dataset, t)) for t in INSTANCES[instance])
-        sys.stdout.write(f"wrote {out_path} ({row_total} rows)\n")
+        _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        for instance in INSTANCES:
+            sql_text = render_instance(
+                instance,
+                dataset,
+                scenarios=(IMPLEMENTED if cfg.scenarios == ["all"] else cfg.scenarios),
+                scale=cfg.scale,
+                seed=cfg.seed,
+            )
+            out_path = _OUTPUT_DIR / _FILE_FOR[instance]
+            out_path.write_text(sql_text, encoding="utf-8", newline="\n")
+            row_total = sum(len(getattr(dataset, t)) for t in INSTANCES[instance])
+            sys.stdout.write(f"wrote {out_path} ({row_total} rows)\n")
+    except (ValueError, NotImplementedError, AssertionError, KeyError, OSError) as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 1
 
     valid = ", ".join(ALL_SCENARIO_IDS)
     sys.stdout.write(

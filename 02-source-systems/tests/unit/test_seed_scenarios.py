@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import pytest
 from seed.builder import (
+    assert_seed_self_consistency,
     build_dataset,
     count_duplicate_nic_pairs,
     count_orphan_claims,
@@ -85,6 +86,41 @@ def test_s03_disabled_yields_zero_orphans() -> None:
     assert count_orphan_claims(ds) == 0
 
 
+# --- Self-consistency: orphan invariant fires in BOTH directions ----------------------
+
+
+def test_self_consistency_passes_for_s03_off_run() -> None:
+    """An S03-off run with zero orphans passes self-consistency (no spurious failure)."""
+    scenarios = ["S01", "S02", "S04", "S05"]
+    ds = build_dataset(GenConfig(scenarios=scenarios, scale=0.02, seed=42))
+    assert count_orphan_claims(ds) == 0
+    assert_seed_self_consistency(ds, scenarios)  # must not raise
+
+
+def test_self_consistency_rejects_stray_orphans_when_s03_off() -> None:
+    """Negative case: a non-S03 run with stray orphans must fail self-consistency.
+
+    Builds an S03-off dataset (0 orphans), then re-points one claim at a non-existent policy
+    so an orphan exists without S03 in the active set. The non-S03 invariant must catch it -
+    the exact gap CodeRabbit flagged: orphans were only asserted when S03 was active.
+    """
+    scenarios = ["S01", "S02", "S04", "S05"]
+    ds = build_dataset(GenConfig(scenarios=scenarios, scale=0.02, seed=42))
+    valid_policy_ids = {p.policy_id for p in ds.policies}
+    ds.claims[0].policy_id = max(valid_policy_ids) + 10_000  # guaranteed non-existent
+    assert count_orphan_claims(ds) == 1
+    with pytest.raises(AssertionError, match=r"Non-S03 invariant: expected 0 orphan claims"):
+        assert_seed_self_consistency(ds, scenarios)
+
+
+def test_self_consistency_passes_for_s03_on_run() -> None:
+    """An S03-on run with exactly 30 orphans passes self-consistency."""
+    scenarios = list(_DQ_SCENARIOS)
+    ds = build_dataset(GenConfig(scenarios=scenarios, scale=0.02, seed=42))
+    assert count_orphan_claims(ds) == _EXPECTED_ORPHANS
+    assert_seed_self_consistency(ds, scenarios)  # must not raise
+
+
 # --- Intra-seed FK integrity ----------------------------------------------------------
 
 
@@ -138,6 +174,7 @@ def test_gl_settlement_fk_resolves_when_present() -> None:
     ds = build_dataset(_cfg())
     txn_ids = {t.transaction_id for t in ds.premium_transactions}
     linked = [g for g in ds.gl_settlements if g.transaction_id is not None]
+    assert linked, "expected at least one gl_settlements row with transaction_id set"
     assert all(g.transaction_id in txn_ids for g in linked)
 
 

@@ -150,6 +150,16 @@ def cms_conn() -> Iterator[psycopg.Connection]:
 
 
 @pytest.fixture
+def pfs_conn() -> Iterator[psycopg.Connection]:
+    """Live connection to postgres-pfs, or skip if unreachable."""
+    conn = _connect_or_skip(dsn_for("pfs"))
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+@pytest.fixture
 def all_conns() -> Iterator[dict[str, psycopg.Connection]]:
     """Live connections to all three instances, keyed by system, or skip if any is unreachable.
 

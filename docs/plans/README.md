@@ -36,5 +36,6 @@ the plan is the scaffolding preserved alongside it.
 |---|---|
 | [2026-06-09 — Foundation Airtightness](2026-06-09-foundation-airtightness.md) | `decisions/adr-000-foundation-airtightness.md` |
 | [2026-06-09 — Validation Robustness Standard](2026-06-09-validation-robustness-standard.md) | `decisions/adr-001-validation-robustness-standard.md` |
+| [2026-06-13 — Phase 02: Source Systems (via spun subagent)](2026-06-13-phase-02-source-systems.md) | `02-source-systems/decisions/adr-001…adr-005` |
 
 Keep this index current — add a row each time a plan is archived.

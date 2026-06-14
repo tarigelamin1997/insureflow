@@ -20,12 +20,11 @@
 --     default. See ADR-003.
 --   - Minimal CHECK enums only where the spec pins a closed domain.
 --
--- GRANT: 00-replication-role.sh granted CONNECT only. Debezium also needs
--- table-level SELECT to capture rows, so each schema file grants SELECT on ALL
--- TABLES to the replication role. The role name is the literal `replicator`,
--- coupled to .env POSTGRES_REPLICATION_USER (the postgres entrypoint runs *.sql
--- files without psql --set, so the env var is not available as a :'var' here —
--- the coupling is documented in .env.example and 00-replication-role.sh).
+-- GRANT: 00-replication-role.sh grants CONNECT; 02-grant-select.sh (which runs
+-- AFTER this schema) grants the table-level SELECT Debezium needs to capture rows.
+-- That grant is parameterized on $POSTGRES_REPLICATION_USER — no role name is
+-- hardcoded in these schema files. (The postgres entrypoint runs *.sql without
+-- psql --set, so :'var' is unavailable here; the .sh grant script has env access.)
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------

@@ -249,7 +249,7 @@ def _build_cms(dataset: Dataset, cfg: GenConfig, rng: random.Random) -> None:
                 claim_id=rng.choice(dataset.claims).claim_id,
                 party_name=fx.full_name(rng),
                 party_nic=fx.nic(rng),
-                liability_pct=(fx.money(rng, 0, 100)),
+                liability_pct=fx.percent(rng, 0, 100),
                 recovery_amount=fx.money(rng, 0, 200_000),
             ),
         )

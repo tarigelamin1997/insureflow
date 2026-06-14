@@ -120,7 +120,7 @@ and moving its ID from `DEFERRED` into `REGISTRY`.
 
 ## Module layout
 
-```
+```text
 seed/
 |- generate.py     # CLI: argparse -> build dataset -> self-assert -> write 3 SQL files
 |- builder.py      # build_dataset(cfg) + the seed-self invariant checks (importable, no I/O)

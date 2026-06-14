@@ -15,7 +15,9 @@
 --     (every reference here is local). CMS/PFS hold the cross-instance logical refs.
 --   - REPLICA IDENTITY FULL on policyholders (Silver dedups on non-PK nic and
 --     tracks SCD on address/customer_tier — needs full before-images). All other
---     PMS tables keep DEFAULT (PK-only before-image) to limit WAL. See ADR-003.
+--     PMS tables declare DEFAULT (PK-only before-image) EXPLICITLY to limit WAL.
+--     Every table states its identity in DDL — no table relies on the implicit
+--     default. See ADR-003.
 --   - Minimal CHECK enums only where the spec pins a closed domain.
 --
 -- GRANT: 00-replication-role.sh granted CONNECT only. Debezium also needs
@@ -40,8 +42,9 @@ CREATE TABLE agents (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit): PK-only before-image is sufficient — no
--- downstream dedup/SCD on agents. Stated for the record; not emitted.
+-- REPLICA IDENTITY DEFAULT: PK-only before-image is sufficient — no downstream
+-- dedup/SCD on agents. Declared explicitly so no table relies on the implicit default.
+ALTER TABLE agents REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- products — one row per insurance product. Referenced by policies (intra-PMS FK).
@@ -58,7 +61,8 @@ CREATE TABLE products (
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE products REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- policyholders — one row per policyholder (the insured party).
@@ -103,7 +107,8 @@ CREATE TABLE policies (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE policies REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- endorsements — one row per policy endorsement (mid-term change). FK→policies.
@@ -118,7 +123,8 @@ CREATE TABLE endorsements (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE endorsements REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- renewals — one row per policy renewal cycle. FK→policies.
@@ -132,7 +138,8 @@ CREATE TABLE renewals (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE renewals REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- cancellations — one row per policy cancellation. FK→policies.
@@ -146,7 +153,8 @@ CREATE TABLE cancellations (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE cancellations REPLICA IDENTITY DEFAULT;
 
 -- Table SELECT for the replication role is granted by 02-grant-select.sh, which
 -- runs after this schema and is parameterized on $POSTGRES_REPLICATION_USER — no

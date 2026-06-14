@@ -15,7 +15,9 @@
 --   - Intra-CMS FKs (everything → claims) ARE enforced.
 --   - REPLICA IDENTITY FULL on claims, claim_events, reserves (full before-images
 --     for S10 out-of-order claim+event dedup and reserve revaluation). assessments,
---     settlements, third_party_details keep DEFAULT to limit WAL. See ADR-003.
+--     settlements, third_party_details declare DEFAULT EXPLICITLY to limit WAL —
+--     every table states its identity in DDL, none relies on the implicit default.
+--     See ADR-003.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -68,7 +70,8 @@ CREATE TABLE assessments (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE assessments REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- settlements — one row per claim settlement (payout). Intra-CMS FK→claims.
@@ -83,7 +86,8 @@ CREATE TABLE settlements (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE settlements REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- reserves — one row per reserve valuation on a claim. Intra-CMS FK→claims.
@@ -115,7 +119,8 @@ CREATE TABLE third_party_details (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE third_party_details REPLICA IDENTITY DEFAULT;
 
 -- Table SELECT for the replication role is granted by 02-grant-select.sh, which
 -- runs after this schema and is parameterized on $POSTGRES_REPLICATION_USER — no

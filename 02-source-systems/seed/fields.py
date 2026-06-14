@@ -134,6 +134,18 @@ def money(rng: random.Random, low: int, high: int) -> Decimal:
     return (Decimal(cents) / Decimal(100)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def percent(rng: random.Random, low: int = 0, high: int = 100) -> Decimal:
+    """Generate a deterministic 2-dp percentage-point Decimal in `[low, high]`.
+
+    Units are percentage points (0-100), not a fraction (0-1), matching the
+    NUMERIC(5,2) `liability_pct` column. Draws the same single `rng.randint` as
+    `money(rng, low, high)`, so swapping `money` for `percent` is value-identical
+    and keeps the seed deterministic — this exists purely to make units explicit.
+    """
+    hundredths = rng.randint(low * 100, high * 100)
+    return (Decimal(hundredths) / Decimal(100)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 def rate(rng: random.Random) -> Decimal:
     """Generate a deterministic 4-dp commission rate in [0.0100, 0.2000]."""
     return (Decimal(rng.randint(100, 2000)) / Decimal(10_000)).quantize(Decimal("0.0001"))

@@ -16,8 +16,9 @@
 --   - premium_transactions.currency is NULLABLE on purpose: scenario S05 seeds NULL
 --     currency, interpreted downstream as SAR. The CHECK still constrains non-null
 --     values to {SAR, USD}; a CHECK passes on NULL, so NULL remains valid.
---   - No PFS table needs REPLICA IDENTITY FULL — all keep DEFAULT (PK-only
---     before-image) to limit WAL. See ADR-003.
+--   - No PFS table needs REPLICA IDENTITY FULL — all declare DEFAULT (PK-only
+--     before-image) EXPLICITLY to limit WAL. Every table states its identity in
+--     DDL, none relies on the implicit default. See ADR-003.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -36,7 +37,8 @@ CREATE TABLE premium_transactions (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE premium_transactions REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- reinsurance_entries — one row per reinsurance treaty entry.
@@ -54,7 +56,8 @@ CREATE TABLE reinsurance_entries (
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE reinsurance_entries REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- gl_settlements — one row per general-ledger settlement line.
@@ -72,7 +75,8 @@ CREATE TABLE gl_settlements (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE gl_settlements REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- ifrs17_data — one row per IFRS 17 measurement record.
@@ -94,7 +98,8 @@ CREATE TABLE ifrs17_data (
     created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- REPLICA IDENTITY DEFAULT (implicit).
+-- REPLICA IDENTITY DEFAULT (explicit).
+ALTER TABLE ifrs17_data REPLICA IDENTITY DEFAULT;
 
 -- -----------------------------------------------------------------------------
 -- Table SELECT for the replication role is granted by 02-grant-select.sh, which

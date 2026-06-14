@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from seed.config import FIXED
+from seed.config import BASELINE, FIXED
 from seed.model import Policyholder
 
 if TYPE_CHECKING:
@@ -38,6 +38,19 @@ def build(dataset: Dataset, cfg: GenConfig, rng: random.Random) -> None:
         raise RuntimeError(msg)
 
     n_pairs = FIXED.s02_duplicate_nic_pairs
+    # Guard: the fixed injection draws `n_pairs` DISTINCT originals, so the scaled baseline
+    # population must hold at least that many. A small enough --scale (policyholders baseline
+    # 50_000, floored at 1) can drop below 50; without this guard rng.sample raises the opaque
+    # "Sample larger than population" ValueError. Fail loud with the actionable minimum instead.
+    if len(dataset.policyholders) < n_pairs:
+        min_scale = n_pairs / BASELINE.policyholders
+        msg = (
+            f"S02 needs at least {n_pairs} baseline policyholders to draw {n_pairs} distinct "
+            f"duplicate-NIC originals, but the scaled population has only "
+            f"{len(dataset.policyholders)}. Increase --scale to at least {min_scale:.4f} "
+            f"(baseline policyholders = {BASELINE.policyholders})."
+        )
+        raise ValueError(msg)
     # Sample distinct originals deterministically so each injection duplicates a unique NIC.
     originals = rng.sample(dataset.policyholders, k=n_pairs)
     ph_ids = dataset.allocator("policyholders")

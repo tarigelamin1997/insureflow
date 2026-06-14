@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from seed.config import GenConfig, make_rng
 from seed.model import Dataset
+from seed.registry import IMPLEMENTED, resolve
 from seed.registry import REGISTRY as _REGISTRY
-from seed.registry import resolve
 
 
 def build_dataset(cfg: GenConfig) -> Dataset:
@@ -50,7 +50,7 @@ def assert_seed_self_consistency(dataset: Dataset, scenarios: list[str]) -> None
     """
     active = {s.strip().upper() for s in scenarios}
     if scenarios == ["all"]:
-        active = {"S01", "S02", "S03", "S04", "S05"}
+        active = set(IMPLEMENTED)
 
     # No NULL primary keys anywhere (mirrors VG4 / test_no_null_pks at the seed level).
     _assert_no_null_pks(dataset)

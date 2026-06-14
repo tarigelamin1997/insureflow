@@ -53,6 +53,17 @@ def test_s02_disabled_yields_zero_pairs() -> None:
     assert count_duplicate_nic_pairs(ds) == 0
 
 
+def test_s02_raises_when_baseline_too_small_for_fixed_pairs() -> None:
+    """A --scale so small the baseline holds <50 policyholders fails loud, not opaque.
+
+    Guard case: S02 draws 50 distinct duplicate-NIC originals; a tiny --scale (here 0.0001,
+    flooring policyholders to 5) can't supply them. The scenario must raise a descriptive
+    ValueError naming the minimum scale, never the bare "Sample larger than population".
+    """
+    with pytest.raises(ValueError, match=r"S02 needs at least 50 baseline policyholders"):
+        build_dataset(GenConfig(scenarios=list(_DQ_SCENARIOS), scale=0.0001, seed=42))
+
+
 # --- S03: exactly 30 orphan claims, fixed under --scale --------------------------------
 
 
@@ -78,7 +89,17 @@ def test_s03_disabled_yields_zero_orphans() -> None:
 
 
 def test_non_orphan_claims_reference_real_policies() -> None:
-    """Every non-orphan claim's policy_id exists in policies."""
+    """Every non-orphan claim's policy_id exists in policies.
+
+    Orphan-ness is identified here by the S03 claim-number marker ("CLM-ORPH-...") ON PURPOSE,
+    not by policy_id membership. Deriving "non-orphan" from `policy_id in policy_ids` and then
+    asserting those same claims have `policy_id in policy_ids` is a tautology that proves
+    nothing. The marker is an independent signal of S03's INTENT, so this test asserts the real
+    property: every claim S03 did NOT mark as an orphan resolves to a real policy. The robust
+    data-derived cross-instance orphan check lives in the contract test (set-difference of CMS
+    policy_ids against PMS policy_ids); this unit test is deliberately implementation-aware and
+    coupled to S03's `"CLM-ORPH-{clid:08d}"` format — if that format changes, update this line.
+    """
     ds = build_dataset(_cfg())
     policy_ids = {p.policy_id for p in ds.policies}
     non_orphan = [
@@ -247,10 +268,11 @@ def test_all_expands_to_implemented_only() -> None:
     assert resolve(["all"]) == list(_DQ_SCENARIOS)
 
 
-def test_deferred_scenarios_raise_not_implemented() -> None:
-    """S06-S12 are architected but raise NotImplementedError if invoked."""
-    cfg = GenConfig(scenarios=["S06"], scale=0.02, seed=42)
+@pytest.mark.parametrize("deferred_id", ["S06", "S07", "S08", "S09", "S10", "S11", "S12"])
+def test_deferred_scenarios_raise_not_implemented(deferred_id: str) -> None:
+    """Each deferred scenario S06-S12 is architected but raises NotImplementedError if invoked."""
+    cfg = GenConfig(scenarios=[deferred_id], scale=0.02, seed=42)
     baseline = build_dataset(GenConfig(scenarios=["S01"], scale=0.02, seed=42))
     rng = make_rng(42)
-    with pytest.raises(NotImplementedError, match="S06"):
-        REGISTRY["S06"](baseline, cfg, rng)
+    with pytest.raises(NotImplementedError, match=deferred_id):
+        REGISTRY[deferred_id](baseline, cfg, rng)

@@ -14,7 +14,7 @@ Set `REPLICA IDENTITY FULL` on exactly four tables and leave the other thirteen 
 - **`claim_events` (CMS)** — same out-of-order dedup path; event reordering needs the full prior event row to deduplicate correctly.
 - **`reserves` (CMS)** — reserve revaluation is an UPDATE that overwrites the prior amount; computing the delta (and auditing the prior value) requires the before-image, which DEFAULT does not emit.
 
-Each is emitted as an explicit `ALTER TABLE <t> REPLICA IDENTITY FULL;` in the DDL (`pms/01-schema.sql`, `cms/01-schema.sql`), immediately after the table, with a one-line comment stating the reason. The thirteen DEFAULT tables carry a one-line comment recording that DEFAULT (PK-only before-image) is sufficient; no `ALTER` is emitted for them (DEFAULT is the implicit state). The choice is asserted in Phase 04+ against `pg_class.relreplident` (`f` = FULL, `d` = DEFAULT), never against the DDL file.
+**Every table declares its REPLICA IDENTITY explicitly in the DDL** — `FULL` on the four, `DEFAULT` on the other thirteen — so no table relies on the implicit default. The four FULL tables emit `ALTER TABLE <t> REPLICA IDENTITY FULL;` immediately after the table; the thirteen non-FULL tables emit `ALTER TABLE <t> REPLICA IDENTITY DEFAULT;` (explicit > implicit: the DDL is the single, unambiguous source of truth — a reviewer never has to infer identity from absence, and a later `ALTER TABLE ... SET ...` that silently changed an identity would be visible against an explicit baseline). Each `ALTER` carries a one-line comment stating the reason. The choice is asserted in Phase 04+ against `pg_class.relreplident` (`f` = FULL, `d` = DEFAULT), never against the DDL file.
 
 ## Alternatives Considered
 

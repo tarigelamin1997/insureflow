@@ -261,9 +261,11 @@ curl -f http://localhost:8080/    # the canary page, over the published port
 ```
 
 > As of Phase 02 this brings up the `canary` smoke-test service **plus the three source databases**
-> `postgres-pms`, `postgres-cms`, `postgres-pfs` (PostgreSQL 16, on host ports 5432/5433/5434 by
-> default, each configured for logical replication). They expose no UI — connect with `psql`, e.g.
-> `psql -h localhost -p 5432 -U pms -d pms`. Service URLs for Airflow, Superset, OpenMetadata,
+> `postgres-pms`, `postgres-cms`, `postgres-pfs` (PostgreSQL 16, on host ports 15432/15433/15434 by
+> default — deliberately non-standard so a fresh `docker compose up` never collides with a native
+> Postgres on the host's 5432; override per `.env`, container-internal port is still 5432, each
+> configured for logical replication). They expose no UI — connect with `psql`, e.g.
+> `psql -h localhost -p 15432 -U pms -d pms`. Service URLs for Airflow, Superset, OpenMetadata,
 > Grafana, Kafka UI, and MinIO are added here as those services land in their phases (03–12).
 
 ---

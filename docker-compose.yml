@@ -99,7 +99,7 @@ services:
     networks:
       - insureflow
     ports:
-      - "${POSTGRES_PMS_HOST_PORT:-5432}:5432"
+      - "${POSTGRES_PMS_HOST_PORT:-15432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_PMS_USER:?POSTGRES_PMS_USER must be set — see .env.example}
       POSTGRES_PASSWORD: ${POSTGRES_PMS_PASSWORD:?POSTGRES_PMS_PASSWORD must be set — see .env.example}
@@ -135,7 +135,7 @@ services:
     networks:
       - insureflow
     ports:
-      - "${POSTGRES_CMS_HOST_PORT:-5433}:5432"
+      - "${POSTGRES_CMS_HOST_PORT:-15433}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_CMS_USER:?POSTGRES_CMS_USER must be set — see .env.example}
       POSTGRES_PASSWORD: ${POSTGRES_CMS_PASSWORD:?POSTGRES_CMS_PASSWORD must be set — see .env.example}
@@ -168,7 +168,7 @@ services:
     networks:
       - insureflow
     ports:
-      - "${POSTGRES_PFS_HOST_PORT:-5434}:5432"
+      - "${POSTGRES_PFS_HOST_PORT:-15434}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_PFS_USER:?POSTGRES_PFS_USER must be set — see .env.example}
       POSTGRES_PASSWORD: ${POSTGRES_PFS_PASSWORD:?POSTGRES_PFS_PASSWORD must be set — see .env.example}

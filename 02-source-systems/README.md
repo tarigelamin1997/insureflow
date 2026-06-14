@@ -35,7 +35,10 @@ python 02-source-systems/seed/generate.py --scenarios all --scale 0.02
 Connection params for the loader and the fitness tests come from `.env`
 (`POSTGRES_<SYS>_HOST` / `_HOST_PORT` / `_USER` / `_PASSWORD` / `_DB`, for `<SYS>` ∈ PMS/CMS/PFS).
 Compose-internal traffic uses the service-name DNS (`postgres-pms` etc.) and ignores the host
-vars; the host vars exist so the loader/tests can reach the **published** ports (5432/5433/5434).
+vars; the host vars exist so the loader/tests can reach the **published** ports
+(15432/15433/15434 by default). These host ports are deliberately non-standard (`1543x`, not
+`543x`) so a fresh `docker compose up` never collides with a native Postgres on the host's 5432 —
+override per `.env` if needed. The container-internal port is still 5432.
 
 ## Validation
 

@@ -18,9 +18,11 @@
 #   - Connection params exported in the shell or present in .env (see below).
 #
 # Connection params (per .env.example; defaults shown in []):
-#   POSTGRES_PMS_HOST [localhost]  POSTGRES_PMS_HOST_PORT [5432]
+#   POSTGRES_PMS_HOST [localhost]  POSTGRES_PMS_HOST_PORT [15432]
 #   POSTGRES_PMS_USER [pms]  POSTGRES_PMS_PASSWORD [pms_pw_change_me]  POSTGRES_PMS_DB [pms]
-#   …and the CMS / PFS equivalents on ports 5433 / 5434.
+#   …and the CMS / PFS equivalents on ports 15433 / 15434.
+#   (Host ports are non-standard 1543x — not 543x — to avoid colliding with a native
+#   Postgres on the host's 5432. Container-internal port is still 5432.)
 #
 # Usage (run from the repository root or anywhere — paths are resolved absolutely):
 #   ./02-source-systems/seed/load.sh                      # scale 1.0, scenarios S01..S05
@@ -91,8 +93,8 @@ load_instance() {
     --file "${file}"
 }
 
-load_instance pms 5432
-load_instance cms 5433
-load_instance pfs 5434
+load_instance pms 15432
+load_instance cms 15433
+load_instance pfs 15434
 
 echo "==> seed load complete (idempotent — re-run any time to reset + reseed)"

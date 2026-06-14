@@ -12,7 +12,7 @@ Connection parameters come exclusively from the environment (never hardcoded), k
 `.env.example` contract:
 
     POSTGRES_<SYS>_HOST       host the instance is reachable on   (default: localhost)
-    POSTGRES_<SYS>_HOST_PORT  published host port                 (default: 5432/5433/5434)
+    POSTGRES_<SYS>_HOST_PORT  published host port                 (default: 15432/15433/15434)
     POSTGRES_<SYS>_USER       application owner role
     POSTGRES_<SYS>_PASSWORD   application owner password
     POSTGRES_<SYS>_DB         database name
@@ -45,7 +45,9 @@ except ImportError:  # pragma: no cover - exercised only in a psycopg-less envir
     _psycopg = None  # type: ignore[assignment]
 
 # The three source instances and their default published host ports (from .env.example).
-_DEFAULT_HOST_PORT = {"pms": "5432", "cms": "5433", "pfs": "5434"}
+# Non-standard 1543x (not 543x) so the host side never collides with a native Postgres on 5432;
+# the env var is always read first (see dsn_for) — these are only the no-env fallbacks.
+_DEFAULT_HOST_PORT = {"pms": "15432", "cms": "15433", "pfs": "15434"}
 INSTANCES: tuple[str, ...] = ("pms", "cms", "pfs")
 
 

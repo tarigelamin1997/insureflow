@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Orientation
 
 **Project:** InsureFlow — production-grade insurance data platform, Medallion lakehouse architecture.
-**Status:** Foundation complete; **Phase 01 (Infrastructure) shipped and released (`v0.1.0`)**. Implementation underway — Phase 02 (Source Systems) is next. The Phase Index below is the live source of truth.
+**Status:** Foundation complete; **Phases 01 (Infrastructure, `v0.1.0`) and 02 (Source Systems, `v0.2.0`) shipped**. Implementation underway — Phase 03 (CDC Ingestion) is next. The Phase Index below is the live source of truth.
 **GitHub target:** `github.com/tarigelamin1997/insureflow`
 **Deployment:** 100% offline. Single `docker compose up` brings the entire stack live.
 
@@ -123,7 +123,7 @@ Status legend: `⬜ Not started` · `🚧 In progress` (set by `/start-phase`) �
 | Phase | Title | Status |
 |---|---|---|
 | 01 | Infrastructure — Docker Compose + Terraform | ✅ Complete |
-| 02 | Source Systems — PostgreSQL schemas + seed data | 🚧 In progress |
+| 02 | Source Systems — PostgreSQL schemas + seed data | ✅ Complete |
 | 03 | CDC Ingestion — Debezium + Kafka KRaft | ⬜ Not started |
 | 04 | Bronze Layer — Iceberg + MinIO + PII masking | ⬜ Not started |
 | 05 | Silver Layer — PySpark + Soda Core | ⬜ Not started |

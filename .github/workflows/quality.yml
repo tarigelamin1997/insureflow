@@ -75,7 +75,15 @@ jobs:
         run: ruff format --check .
 
       - name: mypy (strict)
-        run: mypy --strict 01-infrastructure/tests/contracts 02-source-systems/tests/contracts
+        # Two invocations, not one: the phase dir name `02-source-systems` is not a legal
+        # Python package path, and tests/unit + tests/contracts each ship a `conftest.py`
+        # — a single mypy process rejects the two same-named modules ("Duplicate module
+        # named conftest"). So check the seed package + its unit tests together (MYPYPATH
+        # puts the phase dir on the path so `import seed.*` resolves the way the runtime
+        # conftest does), then the contracts suites separately.
+        run: |
+          MYPYPATH=02-source-systems mypy --strict 02-source-systems/seed 02-source-systems/tests/unit
+          mypy --strict 01-infrastructure/tests/contracts 02-source-systems/tests/contracts
 
       - name: bandit (medium+ severity)
         run: bandit -ll -r .
